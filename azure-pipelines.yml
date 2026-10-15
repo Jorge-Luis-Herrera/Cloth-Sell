@@ -1,0 +1,62 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  acrLoginServer: jennycloth20261014.azurecr.io
+  imageName: jenny-clothing
+  resourceGroup: rg-jenny
+  webApp: jenny-clothing-20261014
+
+steps:
+  - checkout: self
+
+  - task: Docker@2
+    displayName: Build and push image to ACR
+    inputs:
+      command: buildAndPush
+      containerRegistry: JennyACR
+      repository: $(imageName)
+      Dockerfile: Dockerfile
+      tags: |
+        $(Build.SourceVersion)
+        latest
+
+  - task: AzureCLI@2
+    displayName: Configure and deploy App Service
+    inputs:
+      azureSubscription: JennyAzure
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+        az webapp config appsettings set \
+          --name "$(webApp)" \
+          --resource-group "$(resourceGroup)" \
+          --settings \
+            ADMIN_PASSWORD_HASH="$(ADMIN_PASSWORD_HASH)" \
+            AUTH_SIGNING_KEY="$(AUTH_SIGNING_KEY)" \
+            WEBSITES_PORT=8080 \
+            ConnectionStrings__Default="Data Source=/app/data/jenny.db" \
+            UPLOADS_DIR=/app/uploads \
+          --output none
+        az webapp config set \
+          --name "$(webApp)" \
+          --resource-group "$(resourceGroup)" \
+          --linux-fx-version "DOCKER|$(acrLoginServer)/$(imageName):$(Build.SourceVersion)" \
+          --generic-configurations '{"healthCheckPath":"/api/health"}' \
+          --output none
+        az webapp restart \
+          --name "$(webApp)" \
+          --resource-group "$(resourceGroup)" \
+          --output none
+
+  - bash: |
+      curl --fail --retry 12 --retry-delay 10 "https://$(webApp).azurewebsites.net/api/health"
+    displayName: Verify application health
+    env:
+      AZURE_HTTP_USER_AGENT: azure-pipelines
