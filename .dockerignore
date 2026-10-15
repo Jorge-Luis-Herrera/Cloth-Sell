@@ -1,0 +1,8 @@
+**/bin
+**/obj
+Frontend/node_modules
+Frontend/dist
+.local-dev
+.git
+.azure/.preview-temp
+*.db

@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+Frontend/node_modules/
+Frontend/dist/
+.local-dev/
+Backend/uploads/
+*.db
+*.db-shm
+*.db-wal
+.env
+.azure/.preview-temp/
