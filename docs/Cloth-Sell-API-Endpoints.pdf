@@ -1,0 +1,227 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 6 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 1263 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 582 595 260 re f
+0.830 0.720 0.460 rg /F2 14 Tf 48 760 Td (CLOTH-SELL) Tj 0 -14 Td
+1.000 1.000 1.000 rg /F2 31 Tf 48 700 Td (API ENDPOINTS) Tj 0 -31 Td
+0.780 0.830 0.830 rg /F1 11 Tf 48 658 Td (Technical reference for the clothing commerce API) Tj 0 -11 Td
+0.080 0.160 0.200 rg /F2 10 Tf 48 500 Td (PROJECT LINKS) Tj 0 -10 Td
+0.120 0.160 0.200 rg /F1 11 Tf 48 468 Td (GitHub: github.com/Jorge-Luis-Herrera/Cloth-Sell) Tj 0 -11 Td
+0.120 0.160 0.200 rg /F1 11 Tf 48 438 Td (Azure URL: jenny-clothing-20261014.azurewebsites.net) Tj 0 -11 Td
+0.920 0.860 0.700 rg 48 355 499 54 re f
+0.250 0.200 0.100 rg /F2 9 Tf 64 386 Td (DEPLOYMENT STATUS) Tj 0 -9 Td
+0.250 0.200 0.100 rg /F1 9 Tf 64 366 Td (The Azure URL is reserved, but the application image is not deployed yet.) Tj 0 -9 Td
+0.120 0.160 0.200 rg /F1 10 Tf 48 300 Td (Authentication: admin endpoints require Authorization: Bearer <token>) Tj 0 -10 Td
+0.120 0.160 0.200 rg /F1 10 Tf 48 274 Td (Image uploads: JPEG, PNG or WebP; maximum 5 MB; server-side validation.) Tj 0 -10 Td
+0.120 0.160 0.200 rg /F1 10 Tf 48 248 Td (Version documented: 9e9398d) Tj 0 -10 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Prepared 2026-10-15) Tj 0 -8 Td
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 1669 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 722 595 120 re f
+0.830 0.720 0.460 rg /F2 12 Tf 48 782 Td (CLOTH-SELL) Tj 0 -12 Td
+1.000 1.000 1.000 rg /F2 24 Tf 48 754 Td (Public API) Tj 0 -24 Td
+0.250 0.300 0.320 rg /F1 9 Tf 48 700 Td (ASP.NET Core 8 REST API | JSON responses | GUID resources) Tj 0 -9 Td
+1.000 1.000 1.000 rg 48 612 499 58 re f
+0.120 0.420 0.340 rg 60 638 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 644 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 646 Td (/api/health) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 628 Td (Checks API availability and SQLite connectivity.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 542 499 58 re f
+0.120 0.420 0.340 rg 60 568 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 574 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 576 Td (/api/products) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 558 Td (Lists published products. Query: search, size, color, page, pageSize.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 472 499 58 re f
+0.120 0.420 0.340 rg 60 498 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 504 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 506 Td (/api/products/{id}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 488 Td (Returns the public detail of a published product.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 402 499 58 re f
+0.160 0.320 0.520 rg 60 428 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 434 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 436 Td (/api/orders) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 418 Td (Creates an order and decreases stock transactionally.) Tj 0 -8 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Page 2 of 6) Tj 0 -8 Td
+
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 1052 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 722 595 120 re f
+0.830 0.720 0.460 rg /F2 12 Tf 48 782 Td (CLOTH-SELL) Tj 0 -12 Td
+1.000 1.000 1.000 rg /F2 24 Tf 48 754 Td (Authentication) Tj 0 -24 Td
+0.250 0.300 0.320 rg /F1 9 Tf 48 700 Td (ASP.NET Core 8 REST API | JSON responses | GUID resources) Tj 0 -9 Td
+1.000 1.000 1.000 rg 48 612 499 58 re f
+0.160 0.320 0.520 rg 60 638 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 644 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 646 Td (/api/auth/login) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 628 Td (Authenticates the administrator and returns a bearer token.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 542 499 58 re f
+0.160 0.320 0.520 rg 60 568 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 574 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 576 Td (/api/auth/logout) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 558 Td (Ends the client session. Send the token from the client.) Tj 0 -8 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Page 3 of 6) Tj 0 -8 Td
+
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 1621 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 722 595 120 re f
+0.830 0.720 0.460 rg /F2 12 Tf 48 782 Td (CLOTH-SELL) Tj 0 -12 Td
+1.000 1.000 1.000 rg /F2 24 Tf 48 754 Td (Admin - Products) Tj 0 -24 Td
+0.250 0.300 0.320 rg /F1 9 Tf 48 700 Td (ASP.NET Core 8 REST API | JSON responses | GUID resources) Tj 0 -9 Td
+1.000 1.000 1.000 rg 48 612 499 58 re f
+0.120 0.420 0.340 rg 60 638 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 644 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 646 Td (/api/admin/products) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 628 Td (Lists all products, variants and images.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 542 499 58 re f
+0.160 0.320 0.520 rg 60 568 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 574 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 576 Td (/api/admin/products) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 558 Td (Creates a clothing product.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 472 499 58 re f
+0.550 0.350 0.100 rg 60 498 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 504 Td (PUT) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 506 Td (/api/admin/products/{id}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 488 Td (Updates product data and publication status.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 402 499 58 re f
+0.550 0.170 0.150 rg 60 428 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 434 Td (DELETE) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 436 Td (/api/admin/products/{id}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 418 Td (Deletes a product.) Tj 0 -8 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Page 4 of 6) Tj 0 -8 Td
+
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2038 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 722 595 120 re f
+0.830 0.720 0.460 rg /F2 12 Tf 48 782 Td (CLOTH-SELL) Tj 0 -12 Td
+1.000 1.000 1.000 rg /F2 24 Tf 48 754 Td (Admin - Variants and images) Tj 0 -24 Td
+0.250 0.300 0.320 rg /F1 9 Tf 48 700 Td (ASP.NET Core 8 REST API | JSON responses | GUID resources) Tj 0 -9 Td
+1.000 1.000 1.000 rg 48 612 499 58 re f
+0.160 0.320 0.520 rg 60 638 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 644 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 646 Td (/api/admin/products/{id}/variants) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 628 Td (Creates a size/color variant with SKU and stock.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 542 499 58 re f
+0.550 0.350 0.100 rg 60 568 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 574 Td (PUT) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 576 Td (/api/admin/products/{id}/variants/{variantId}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 558 Td (Updates a variant and its stock.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 472 499 58 re f
+0.550 0.170 0.150 rg 60 498 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 504 Td (DELETE) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 506 Td (/api/admin/products/{id}/variants/{variantId}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 488 Td (Deletes a variant.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 402 499 58 re f
+0.160 0.320 0.520 rg 60 428 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 434 Td (POST) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 436 Td (/api/admin/products/{id}/images) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 418 Td (Uploads a JPEG, PNG or WebP image as multipart file.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 332 499 58 re f
+0.550 0.170 0.150 rg 60 358 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 364 Td (DELETE) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 366 Td (/api/admin/products/{id}/images/{imageId}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 348 Td (Deletes a product image.) Tj 0 -8 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Page 5 of 6) Tj 0 -8 Td
+
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 1326 >>
+stream
+0.980 0.970 0.940 rg 0 0 595 842 re f
+0.080 0.160 0.200 rg 0 722 595 120 re f
+0.830 0.720 0.460 rg /F2 12 Tf 48 782 Td (CLOTH-SELL) Tj 0 -12 Td
+1.000 1.000 1.000 rg /F2 24 Tf 48 754 Td (Admin - Orders) Tj 0 -24 Td
+0.250 0.300 0.320 rg /F1 9 Tf 48 700 Td (ASP.NET Core 8 REST API | JSON responses | GUID resources) Tj 0 -9 Td
+1.000 1.000 1.000 rg 48 612 499 58 re f
+0.120 0.420 0.340 rg 60 638 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 644 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 646 Td (/api/admin/orders) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 628 Td (Lists orders. Optional query: status.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 542 499 58 re f
+0.120 0.420 0.340 rg 60 568 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 574 Td (GET) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 576 Td (/api/admin/orders/{id}) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 558 Td (Returns one order with its item snapshots.) Tj 0 -8 Td
+1.000 1.000 1.000 rg 48 472 499 58 re f
+0.450 0.250 0.500 rg 60 498 55 20 re f
+1.000 1.000 1.000 rg /F2 8 Tf 70 504 Td (PATCH) Tj 0 -8 Td
+0.080 0.160 0.200 rg /F2 10 Tf 130 506 Td (/api/admin/orders/{id}/status) Tj 0 -10 Td
+0.300 0.340 0.350 rg /F1 8 Tf 130 488 Td (Changes the order status.) Tj 0 -8 Td
+0.350 0.380 0.380 rg /F1 8 Tf 48 34 Td (Cloth-Sell API  |  Page 6 of 6) Tj 0 -8 Td
+
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 15 0 R >>
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000155 00000 n 
+0000000225 00000 n 
+0000000300 00000 n 
+0000001615 00000 n 
+0000001751 00000 n 
+0000003472 00000 n 
+0000003608 00000 n 
+0000004712 00000 n 
+0000004849 00000 n 
+0000006523 00000 n 
+0000006661 00000 n 
+0000008752 00000 n 
+0000008890 00000 n 
+0000010269 00000 n 
+trailer
+<< /Size 17 /Root 1 0 R >>
+startxref
+10407
+%%EOF
