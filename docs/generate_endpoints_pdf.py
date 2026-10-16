@@ -101,7 +101,7 @@ def build_pdf():
         flat_pages.append((section, entries))
     total = len(flat_pages) + 1
     for index, (section, entries) in enumerate(flat_pages, start=2):
-        pages.append(make_page(section, "ASP.NET Core 8 REST API | JSON responses | GUID resources", entries, index, total))
+        pages.append(make_page(section, "Rust Axum REST API | JSON responses | UUID resources", entries, index, total))
 
     objects = []
     def add(obj):

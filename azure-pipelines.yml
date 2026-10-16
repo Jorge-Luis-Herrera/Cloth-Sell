@@ -41,7 +41,7 @@ steps:
             ADMIN_PASSWORD_HASH="$(ADMIN_PASSWORD_HASH)" \
             AUTH_SIGNING_KEY="$(AUTH_SIGNING_KEY)" \
             WEBSITES_PORT=8080 \
-            ConnectionStrings__Default="Data Source=/app/data/jenny.db" \
+            DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" \
             UPLOADS_DIR=/app/uploads \
           --output none
         az webapp config set \

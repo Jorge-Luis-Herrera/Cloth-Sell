@@ -6,7 +6,7 @@
 
 ## 1. Project Summary
 
-Jenny será un e-commerce de ropa con catálogo público, carrito y creación de pedidos, acompañado de un panel administrativo protegido. El backend seguirá ASP.NET Core/C# y el frontend será React con TypeScript. El MVP prioriza vender y gestionar inventario de forma simple, sin pasarela de pago ni cuentas de cliente.
+Jenny será un e-commerce de ropa con catálogo público, carrito y creación de pedidos, acompañado de un panel administrativo protegido. El backend será Rust con Axum y el frontend React con TypeScript.
 
 La solución toma como referencia técnica Pizzeria: API REST, autenticación administrativa por token, totales calculados en servidor, límites de subida, health check, contenedor no privilegiado, configuración por variables de entorno, ejecución local aislada y despliegue de imagen etiquetada por commit a Azure Container Registry y Azure App Service for Containers.
 
@@ -28,9 +28,9 @@ La solución toma como referencia técnica Pizzeria: API REST, autenticación ad
 
 ## 3. Services & Architecture
 
-**Backend service**: ASP.NET Core Web API sobre .NET 8 LTS o la versión LTS disponible al comenzar la implementación. Expone rutas públicas de catálogo y pedidos, y rutas administrativas protegidas. La API sirve el contrato JSON y registra logs estructurados.
+**Backend service**: API Rust con Axum, SQLx y SQLite. Expone rutas públicas de catálogo y pedidos, y rutas administrativas protegidas.
 
-**Frontend service**: React + TypeScript + Vite. La aplicación contiene la tienda pública y el panel admin en la misma SPA, separando rutas públicas y privadas. En desarrollo Vite usa proxy hacia la API; en producción el frontend se compila y se copia al contenedor para servirlo desde App Service mediante ASP.NET Core, siguiendo el despliegue same-origin de Pizzeria.
+**Frontend service**: React + TypeScript + Vite. La aplicación contiene la tienda pública y el panel admin en la misma SPA, separando rutas públicas y privadas. En desarrollo Vite usa proxy hacia la API; en producción el frontend se compila y se copia al contenedor para servirlo mediante Axum, siguiendo el despliegue same-origin de Pizzeria.
 
 **Request flow**:
 
@@ -41,7 +41,7 @@ La solución toma como referencia técnica Pizzeria: API REST, autenticación ad
 5. El administrador inicia sesión y usa un token de sesión firmado para las rutas privadas.
 6. Las imágenes pasan por validación y se guardan en Blob Storage en producción; una referencia estable queda asociada al producto.
 
-**Adaptación desde Pizzeria**: se reemplazan Rust/Axum/SeaORM por ASP.NET Core, Entity Framework Core y SQLite, manteniendo separación de handlers, límites de entrada, autenticación por bearer token, archivos de configuración, scripts de ejecución local y pipeline Docker/ACR/App Service.
+**Adaptación desde Pizzeria**: se reutiliza el patrón Rust/Axum/SQLite, manteniendo límites de entrada, autenticación por bearer token, configuración por entorno, scripts locales y pipeline Docker/ACR/App Service.
 
 ## 4. Data Model & Persistence
 
@@ -94,7 +94,7 @@ La subida acepta inicialmente JPEG, PNG y WebP, con límite por defecto de 5 MB.
 
 ## 7. Docker & Azure Deployment
 
-**Dockerfile**: build multi-stage con SDK de .NET para compilar backend y Node para compilar React; runtime ASP.NET Core minimal. El contenedor crea `/app/data` y `/app/uploads`, ejecuta como usuario no privilegiado, expone `8080`, define `ASPNETCORE_URLS=http://+:8080` y no incluye secretos ni bases reales.
+**Dockerfile**: build multi-stage con Rust para compilar backend y Node para compilar React; runtime Debian minimal. El contenedor crea `/app/data` y `/app/uploads`, ejecuta como usuario no privilegiado y expone `8080`.
 
 **ACR**: el script `deploy/deploy-appservice.sh` valida formato, tests y build, autentica contra `ACR_NAME.azurecr.io`, publica tags `git-sha` y `latest`, y conserva el SHA como referencia de rollback. Las credenciales deben venir del entorno o de un archivo local protegido que nunca se commitea.
 
@@ -117,7 +117,7 @@ La subida acepta inicialmente JPEG, PNG y WebP, con límite por defecto de 5 MB.
 
 ## 9. Decisions, Assumptions & Open Items
 
-- **Decidido para MVP**: ASP.NET Core/C#, React/TypeScript, SQLite, autenticación solo administrativa, pedidos sin pago online, Fluent UI v9, Docker y Azure ACR + App Service for Containers.
+- **Decidido para MVP**: Rust/Axum, React/TypeScript, SQLite, autenticación solo administrativa, pedidos sin pago online, Fluent UI v9, Docker y Azure ACR + App Service for Containers.
 - **Decidido por referencia**: token bearer firmado, totales server-side, validaciones estrictas, usuario de contenedor sin privilegios, configuración por entorno, tags por commit, health check y backups verificables.
 - **Decisión de persistencia**: Azure Files para SQLite por compatibilidad con el patrón de Pizzeria; Blob Storage para imágenes por durabilidad y desacoplamiento. La interfaz de almacenamiento permite fallback local durante desarrollo.
 - **Supuesto**: una única instancia de App Service durante el MVP. No se promete consistencia de escritura SQLite con múltiples réplicas.

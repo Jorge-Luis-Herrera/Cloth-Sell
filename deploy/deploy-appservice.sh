@@ -5,10 +5,27 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-jenny-clothing}"
 TAG="$(git -C "$PROJECT_DIR" rev-parse --short HEAD 2>/dev/null || echo local)"
 IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME"
+# Secrets must never be mangled: ADMIN_PASSWORD_HASH contains '$' separators.
+# Fail fast with a clear message if the hash does not look like pbkdf2.
+if [[ "$ADMIN_PASSWORD_HASH" != pbkdf2\$*\$*\$* ]]; then
+  echo "ADMIN_PASSWORD_HASH is malformed (expected pbkdf2\$iterations\$salt\$hash)." >&2
+  echo "If you sourced it from a file, wrap the value in single quotes." >&2
+  exit 2
+fi
+
 if [[ "${1:-}" != "--skip-tests" ]]; then docker build --target backend-build "$PROJECT_DIR"; fi
-docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" "$PROJECT_DIR"
+# DOCKERFILE lets you reuse an already-compiled binary (Dockerfile.prebuilt) to skip the slow Rust build.
+DOCKERFILE="${DOCKERFILE:-$PROJECT_DIR/Dockerfile}"
+docker build -f "$DOCKERFILE" -t "$IMAGE:$TAG" -t "$IMAGE:latest" "$PROJECT_DIR"
 docker push "$IMAGE:$TAG"; docker push "$IMAGE:latest"
-az webapp config appsettings set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --settings ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" AUTH_SIGNING_KEY="$AUTH_SIGNING_KEY" ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}" ConnectionStrings__Default="Data Source=/app/data/jenny.db" UPLOADS_DIR="/app/uploads" WEBSITES_PORT=8080 --output none
+
+# App Service must authenticate to the registry. A stale DOCKER_REGISTRY_SERVER_URL
+# (e.g. left pointing at mcr.microsoft.com) makes the image pull fail with
+# ImagePullUnauthorizedFailure, so always pin it to this ACR.
+ACR_USER="$(az acr credential show --name "$ACR_NAME" --query username --output tsv)"
+ACR_PASSWORD="$(az acr credential show --name "$ACR_NAME" --query 'passwords[0].value' --output tsv)"
+
+az webapp config appsettings set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --settings ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" AUTH_SIGNING_KEY="$AUTH_SIGNING_KEY" ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}" DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" UPLOADS_DIR="/app/uploads" WEBSITES_PORT=8080 DOCKER_REGISTRY_SERVER_URL="https://$ACR_NAME.azurecr.io" DOCKER_REGISTRY_SERVER_USERNAME="$ACR_USER" DOCKER_REGISTRY_SERVER_PASSWORD="$ACR_PASSWORD" --output none
 az webapp config set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --linux-fx-version "DOCKER|$IMAGE:$TAG" --always-on true --generic-configurations '{"healthCheckPath":"/api/health"}' --output none
 az webapp restart --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --output none
 FQDN="$(az webapp show --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --query defaultHostName --output tsv)"

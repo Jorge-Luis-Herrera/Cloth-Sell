@@ -1,17 +1,17 @@
 # This project is a simple project to an e-commerce of a girl that needs to sell clothes
 
-## I`m going to use C# and dotnet for backend .and react for frontend 
+## Backend Rust y frontend React
 
 
 ### Things to do XD 
 
 # Jenny Clothing Commerce
 
-E-commerce de ropa con catalogo publico, variantes de talla/color, stock transaccional, pedidos sin cuenta y panel administrativo protegido. Backend ASP.NET Core 8 + EF Core/SQLite; frontend React/TypeScript/Vite con Fluent UI; despliegue como imagen multi-stage en Azure Container Registry y App Service for Containers.
+E-commerce de ropa con catalogo publico, variantes de talla/color, stock transaccional, pedidos sin cuenta y panel administrativo protegido. Backend Rust + Axum/SQLx/SQLite; frontend React/TypeScript/Vite con Fluent UI; despliegue como imagen multi-stage en Azure Container Registry y App Service for Containers.
 
 ## Desarrollo local
 
-Requisitos: Docker para la validacion reproducible, o .NET 8 y Node 22 para desarrollo directo.
+Requisitos: Rust estable, Docker para la validacion reproducible, o Node 22 para el frontend.
 
 ```bash
 export ADMIN_PASSWORD_HASH='pbkdf2$600000$BASE64_SALT$BASE64_HASH'
@@ -46,7 +46,7 @@ Admin Bearer: login/logout, CRUD de productos, imagenes, variantes/stock y consu
 
 # This project is a simple e-commerce project for a girl who wants to sell clothes.
 
-## I'm going to use C# and .NET for the backend, and React for the frontend.
+## Backend Rust con Axum y frontend React.
 
 ### Things to do
 

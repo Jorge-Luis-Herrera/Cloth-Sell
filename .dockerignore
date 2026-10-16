@@ -2,6 +2,10 @@
 **/obj
 Frontend/node_modules
 Frontend/dist
+Backend-Rust/target
+!Backend-Rust/target/
+!Backend-Rust/target/release/
+!Backend-Rust/target/release/jenny-api
 .local-dev
 .git
 .azure/.preview-temp

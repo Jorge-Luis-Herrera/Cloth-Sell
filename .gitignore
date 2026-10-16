@@ -1,5 +1,6 @@
 **/bin/
 **/obj/
+Backend-Rust/target/
 Frontend/node_modules/
 Frontend/dist/
 .local-dev/
