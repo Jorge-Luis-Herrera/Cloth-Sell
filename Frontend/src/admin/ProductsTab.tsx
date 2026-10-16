@@ -6,7 +6,7 @@ const stockOf = (p: Product) => p.variants.reduce((n, v) => n + (v.stockQuantity
 const colorsOf = (p: Product) => [...new Set(p.variants.map((v) => v.color))].slice(0, 5);
 const sizesOf = (p: Product) => [...new Set(p.variants.map((v) => v.size))].sort();
 
-export function ProductsTab({ token, products, onChanged, onCreate, onEdit }: { token: string; products: Product[]; onChanged: () => Promise<void>; onCreate: () => void; onEdit: (p: Product) => void }) {
+export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dialogOpen }: { token: string; products: Product[]; onChanged: () => Promise<void>; onCreate: () => void; onEdit: (p: Product) => void; dialogOpen: boolean }) {
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'published' | 'drafts' | 'low'>('all');
@@ -64,7 +64,7 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit }: { 
           <p>Da de alta tus prendas, sus tallas y sus fotos. Solo lo publicado se vende.</p>
         </div>
         <div className="adm-tools">
-          <button type="button" className="adm-btn adm-btn-primary" onClick={onCreate}>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={onCreate} disabled={dialogOpen}>
             + Nuevo producto
           </button>
         </div>

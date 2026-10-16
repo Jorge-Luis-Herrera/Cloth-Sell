@@ -142,7 +142,7 @@ function Panel({ token, onLogout }: { token: string; onLogout: () => void }) {
 
       <main className="adm-main">
         {tab === 'products' ? (
-          <ProductsTab token={token} products={products} onChanged={refresh} onCreate={openNew} onEdit={openEdit} />
+          <ProductsTab token={token} products={products} onChanged={refresh} onCreate={openNew} onEdit={openEdit} dialogOpen={dialogOpen} />
         ) : (
           <OrdersTab token={token} orders={orders} onChanged={refresh} />
         )}
