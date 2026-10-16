@@ -17,6 +17,22 @@ if [[ "${1:-}" != "--skip-tests" ]]; then docker build --target backend-build "$
 # DOCKERFILE lets you reuse an already-compiled binary (Dockerfile.prebuilt) to skip the slow Rust build.
 DOCKERFILE="${DOCKERFILE:-$PROJECT_DIR/Dockerfile}"
 docker build -f "$DOCKERFILE" -t "$IMAGE:$TAG" -t "$IMAGE:latest" "$PROJECT_DIR"
+
+# Docker happily reuses a cached COPY layer for the binary, which silently ships the
+# PREVIOUS build. Verify the binary inside the image really is the one we just
+# compiled, otherwise the deploy would look green and serve old code.
+LOCAL_BIN="$PROJECT_DIR/Backend-Rust/target/release/jenny-api"
+if [[ -f "$LOCAL_BIN" ]]; then
+  local_sum="$(sha256sum "$LOCAL_BIN" | cut -d' ' -f1)"
+  image_sum="$(docker run --rm --entrypoint sha256sum "$IMAGE:$TAG" /app/jenny-api | cut -d' ' -f1)"
+  if [[ "$local_sum" != "$image_sum" ]]; then
+    echo "Stale binary in image (docker cache reused the COPY layer)." >&2
+    echo "Rebuild with: docker build --no-cache -f $DOCKERFILE -t $IMAGE:$TAG $PROJECT_DIR" >&2
+    exit 3
+  fi
+  echo "Binary in image matches the local build."
+fi
+
 docker push "$IMAGE:$TAG"; docker push "$IMAGE:latest"
 
 # App Service must authenticate to the registry. A stale DOCKER_REGISTRY_SERVER_URL
