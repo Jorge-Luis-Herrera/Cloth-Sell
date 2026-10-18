@@ -58,6 +58,9 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
 
 function Storefront() {
   const [products, setProducts] = useState<Product[]>([]), [loading, setLoading] = useState(true), [loadingMore, setLoadingMore] = useState(false), [query, setQuery] = useState(''), [busqueda, setBusqueda] = useState(''), [total, setTotal] = useState(0), [page, setPage] = useState(1), [hasMore, setHasMore] = useState(false), [cart, setCart] = useState<CartLine[]>(readCart), [selected, setSelected] = useState<Record<string, string>>({}), [checkout, setCheckout] = useState(false), [sent, setSent] = useState(false);
+  // El carrito es un panel flotante: se abre al añadir una prenda, se cierra con la cruz
+  // (por si no quieres pedir) y se vuelve a abrir con el botón de la bolsa.
+  const [cartOpen, setCartOpen] = useState(false);
   // Ficha de producto: abrir la imagen del catalogo muestra una hoja flotante con la foto y
   // los detalles delante; dentro de la hoja, tocar la foto abre la imagen completa en pantalla.
   const [detail, setDetail] = useState<Product | null>(null), [foto, setFoto] = useState<string | null>(null);
@@ -118,8 +121,14 @@ function Storefront() {
   });
 
   useEffect(() => localStorage.setItem('jenny-cart', JSON.stringify(cart)), [cart]);
+  // Si el pedido se queda sin prendas, el panel se esconde solo.
+  useEffect(() => { if (cart.length === 0 && !checkout) setCartOpen(false); }, [cart.length, checkout]);
   const totalCarrito = cart.reduce((sum, line) => sum + (line.variant.price * line.quantity), 0);
-  const add = (product: Product, variant: Variant) => setCart(current => { const found = current.find(line => line.variant.id === variant.id); return found ? current.map(line => line.variant.id === variant.id ? { ...line, quantity: Math.min(line.quantity + 1, variant.stockQuantity) } : line) : [...current, { product, variant, quantity: 1 }]; });
+  const add = (product: Product, variant: Variant) => { setCart(current => { const found = current.find(line => line.variant.id === variant.id); return found ? current.map(line => line.variant.id === variant.id ? { ...line, quantity: Math.min(line.quantity + 1, variant.stockQuantity) } : line) : [...current, { product, variant, quantity: 1 }]; }); setCartOpen(true); };
+  /** Sube o baja la cantidad de una línea; si llega a cero, la quita del pedido. */
+  const changeQty = (variantId: string, delta: number) => setCart(current => current.flatMap(line => { if (line.variant.id !== variantId) return [line]; const next = Math.min(Math.max(line.quantity + delta, 0), Math.max(line.variant.stockQuantity, 1)); return next <= 0 ? [] : [{ ...line, quantity: next }]; }));
+  /** Quita una prenda entera del pedido. */
+  const removeLine = (variantId: string) => setCart(current => current.filter(line => line.variant.id !== variantId));
   /** Captura la ubicacion GPS y la deja en el estado para el pedido. Si el cliente no la da,
    *  el pedido sale igual: solo pierde el punto del mapa. */
   const takeGps = () => {
@@ -185,13 +194,57 @@ function Storefront() {
       <p className="sheet-hint">Se abre el chat de la tienda ({WHATSAPP_NUMBER}) con el detalle ya escrito: revísalo y mándalo.</p>
     </div>
   </section></div>}
-  <aside className={`cart-drawer ${cart.length || checkout ? 'open' : ''}`}><div className="cart-head"><h2>{checkout ? 'Finalizar pedido' : `Tu selección (${cart.length})`}</h2><Button appearance="subtle" onClick={() => { setCheckout(false); setCart([]); setGps(null); }}>Vaciar</Button></div>{checkout ? <form onSubmit={submit} className="checkout-form"><Field label="Nombre" required><Input name="name" required /></Field><Field label="Teléfono" required><Input name="phone" required /></Field><Field label="Dirección de entrega" required><Textarea name="address" required /></Field>
-<div className="gps-block">
-  <Button type="button" appearance="outline" onClick={takeGps}>{gps ? '📍 Repetir ubicación GPS' : '📍 Usar mi ubicación GPS'}</Button>
-  {gps && <iframe className="gps-map" title="Punto de entrega en el mapa" src={`https://maps.google.com/maps?q=${gps.lat},${gps.lng}&z=15&output=embed`} loading="lazy" />}
-  <p className="gps-hint">{gps ? <>Punto de entrega adjunto ✓ — <a href={`https://www.google.com/maps?q=${gps.lat},${gps.lng}`} target="_blank" rel="noreferrer">abrir en Google Maps</a></> : 'Opcional: adjunta tu punto en el mapa para que la entrega te encuentre justo ahí.'}</p>
-</div>
-<Field label="Notas"><Textarea name="notes" /></Field><Button appearance="primary" type="submit">Confirmar pedido · {money(totalCarrito)}</Button></form> : <>{cart.map(line => <div className="cart-line" key={line.variant.id}><span>{line.product.name}<small>{line.variant.size} / {line.variant.color}</small></span><strong>{line.quantity} × {money(line.variant.price)}</strong></div>)}{cart.length > 0 && <Button appearance="primary" onClick={() => setCheckout(true)}>Continuar · {money(totalCarrito)}</Button>}{sent && <p className="success">Pedido recibido. Te contactaremos pronto.</p>}</>}</aside></>;
+  <aside className={`cart-drawer ${cartOpen ? 'open' : ''}`} aria-label="Carrito">
+  <div className="cart-top">
+    <div>
+      <p className="eyebrow">{checkout ? 'ÚLTIMO PASO' : 'TU PEDIDO'}</p>
+      <h2>{checkout ? 'Finalizar pedido' : 'Tu selección'}</h2>
+    </div>
+    <button type="button" className="cart-close" aria-label="Cerrar carrito" onClick={() => { setCartOpen(false); setCheckout(false); }}>×</button>
+  </div>
+  {checkout ? <form onSubmit={submit} className="cart-form">
+    <Field label="Nombre" required><Input name="name" required /></Field>
+    <Field label="Teléfono" required><Input name="phone" required /></Field>
+    <Field label="Dirección de entrega" required><Textarea name="address" required /></Field>
+    <div className="gps-block">
+      <Button type="button" appearance="outline" onClick={takeGps}>{gps ? '📍 Repetir ubicación GPS' : '📍 Usar mi ubicación GPS'}</Button>
+      {gps && <iframe className="gps-map" title="Punto de entrega en el mapa" src={`https://maps.google.com/maps?q=${gps.lat},${gps.lng}&z=15&output=embed`} loading="lazy" />}
+      <p className="gps-hint">{gps ? <>Punto de entrega adjunto ✓ — <a href={`https://www.google.com/maps?q=${gps.lat},${gps.lng}`} target="_blank" rel="noreferrer">abrir en Google Maps</a></> : 'Opcional: adjunta tu punto en el mapa para que la entrega te encuentre justo ahí.'}</p>
+    </div>
+    <Field label="Notas"><Textarea name="notes" /></Field>
+    <div className="cart-foot">
+      <div className="cart-total"><span>Total</span><strong>{money(totalCarrito)}</strong></div>
+      <button type="submit" className="cart-cta">Confirmar pedido · {money(totalCarrito)}</button>
+      <button type="button" className="cart-cancel" onClick={() => setCheckout(false)}>← Volver al carrito</button>
+    </div>
+  </form> : <>
+    {cart.length === 0 ? <p className="cart-empty">Tu selección está vacía.<br />Toca una prenda para añadirla.</p> : <ul className="cart-items">
+      {cart.map(line => <li className="cart-item" key={line.variant.id}>
+        <div className="cart-thumb">{line.product.images[0] ? <img src={line.product.images[0].url} alt="" loading="lazy" /> : <span>{line.product.name.slice(0, 1)}</span>}</div>
+        <div className="cart-item-info">
+          <strong>{line.product.name}</strong>
+          <small>{line.variant.size} / {line.variant.color}</small>
+          <div className="cart-qty">
+            <button type="button" aria-label="Quitar una unidad" onClick={() => changeQty(line.variant.id, -1)}>−</button>
+            <span>{line.quantity}</span>
+            <button type="button" aria-label="Añadir una unidad" disabled={line.quantity >= line.variant.stockQuantity} onClick={() => changeQty(line.variant.id, 1)}>+</button>
+          </div>
+        </div>
+        <div className="cart-item-price">
+          <strong>{money(line.variant.price * line.quantity)}</strong>
+          <small>{money(line.variant.price)} c/u</small>
+          <button type="button" className="cart-remove" onClick={() => removeLine(line.variant.id)}>Quitar</button>
+        </div>
+      </li>)}
+    </ul>}
+    {sent && <p className="success">Pedido recibido. Te contactaremos pronto.</p>}
+    {cart.length > 0 && <div className="cart-foot">
+      <div className="cart-total"><span>Total</span><strong>{money(totalCarrito)}</strong></div>
+      <button type="button" className="cart-cta" onClick={() => setCheckout(true)}>Continuar · {money(totalCarrito)}</button>
+    </div>}
+  </>}
+</aside>
+{cart.length > 0 && !cartOpen && <button type="button" className="cart-fab" aria-label={`Abrir carrito (${cart.length})`} onClick={() => setCartOpen(true)}>🛍️<span>{cart.length}</span></button>}</>;
 }
 
 /** El panel ya no tiene boton en la web: se entra por la URL /#admin y se sale cerrando sesion
