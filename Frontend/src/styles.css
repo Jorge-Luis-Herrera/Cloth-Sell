@@ -285,3 +285,10 @@
 .cart-fill-text{margin:0;font-size:13px;color:#877d74}
 .cart-drawer .cart-fill-btn{margin:0;width:auto;padding:7px 12px;border:1px solid #d5654d;border-radius:999px;background:#fff;color:#d5654d;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
 .cart-drawer .cart-fill-btn:hover{background:#d5654d;color:#fff}
+
+/* Pantalla de error controlada (Error Boundary): nunca más una página en blanco. */
+.fatal{max-width:520px;margin:12vh auto;padding:28px 24px;text-align:center;font-family:inherit;color:#332e29}
+.fatal h1{margin:0 0 10px;font-size:22px}
+.fatal p{margin:0 0 20px;color:#877d74;font-size:14px;word-break:break-word}
+.fatal button{padding:12px 22px;border:0;border-radius:999px;background:#d5654d;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.fatal button:hover{filter:brightness(.94)}

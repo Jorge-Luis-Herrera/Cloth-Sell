@@ -16,15 +16,19 @@ const readDatosCliente = (): DatosCliente | null => { try { const d = JSON.parse
 /** WhatsApp de la tienda: al confirmar pedido se manda el resumen por aqui. */
 const WHATSAPP_NUMBER = '5354504048';
 
-/** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda). */
+/** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda).
+ *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
 const mensajeWhatsapp = (order: Order) => {
-  const lineas = order.items.map(it => `• ${it.quantity} × ${it.name} (${it.size} / ${it.color}) — ${money(it.lineTotal)}`).join('\n');
+  const lineas = (order.items ?? []).map(it => `• ${it.quantity} × ${it.name} (${it.size} / ${it.color}) — ${money(it.lineTotal)}`).join('\n');
   return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)}\n\n${lineas}\n\nTotal: ${money(order.total)}\n\n👤 ${order.customerName}\n📞 ${order.customerPhone}\n📍 ${order.deliveryAddress}${order.notes ? `\n📝 ${order.notes}` : ''}`;
 };
 
 /** Versión corta del mensaje: `wa.me` NO acepta URLs muy largas y, si se pasa,
- *  abre el chat VACÍO (justo lo que pasaba). En ese caso mandamos este resumen. */
-const mensajeCorto = (order: Order) => `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)} (${order.items.length} ${order.items.length === 1 ? 'prenda' : 'prendas'}). Total: ${money(order.total)}. 👤 ${order.customerName} · 📞 ${order.customerPhone}`;
+ *  abre el chat VACÍO. En ese caso mandamos este resumen. */
+const mensajeCorto = (order: Order) => {
+  const n = (order.items ?? []).length;
+  return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)} (${n} ${n === 1 ? 'prenda' : 'prendas'}). Total: ${money(order.total)}. 👤 ${order.customerName} · 📞 ${order.customerPhone}`;
+};
 
 const PAGE_SIZE = 12;
 
@@ -201,13 +205,35 @@ function Storefront() {
     try {
       const pedido = await api.order({ customerName: data.get('name'), customerPhone: data.get('phone'), deliveryAddress: address + gpsLine, notes: data.get('notes'), items: cart.map(line => ({ variantId: line.variant.id, quantity: line.quantity })) }) as Order | null;
       if (!pedido) throw new Error('El servidor no devolvió el pedido creado.');
-      setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(pedido);
+      // El backend responde SOLO id/status/total/createdAt (sin `items` ni datos del cliente).
+      // Antes el recibo y el mensaje de WhatsApp leían `pedido.items` y eso lanzaba un TypeError
+      // que dejaba la página en blanco justo al confirmar. Armamos el pedido con el carrito,
+      // que es exactamente la misma información que se acaba de enviar.
+      const creado: Order = {
+        id: pedido.id, status: pedido.status, total: pedido.total,
+        createdAt: pedido.createdAt, updatedAt: pedido.createdAt,
+        customerName: String(data.get('name') ?? '').trim(),
+        customerPhone: String(data.get('phone') ?? '').trim(),
+        deliveryAddress: address + gpsLine,
+        notes: String(data.get('notes') ?? '').trim() || null,
+        items: cart.map(line => ({ name: line.product.name, size: line.variant.size, color: line.variant.color, unitPrice: line.variant.price, quantity: line.quantity, lineTotal: line.variant.price * line.quantity })),
+      };
+      setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(creado);
       // Llevamos la ventana ya abierta al chat de WhatsApp con el pedido (sin bloqueos).
-      if (waWindow) waWindow.location.href = whatsappHref(pedido);
+      // Si por lo que sea fallara, la cerramos y queda el recibo con el botón verde.
+      if (waWindow) { try { waWindow.location.href = whatsappHref(creado); } catch { waWindow.close(); } }
       // Recordamos los datos para el próximo pedido (nombre, teléfono, dirección y notas).
       const recuerdo: DatosCliente = { name: String(data.get('name') ?? '').trim(), phone: String(data.get('phone') ?? '').trim(), address, notes: String(data.get('notes') ?? '').trim() };
       localStorage.setItem(DATOS_CLIENTE_KEY, JSON.stringify(recuerdo)); setGuardados(recuerdo);
-    } catch (error) { if (waWindow) waWindow.close(); dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
+    } catch (error) {
+      if (waWindow) waWindow.close();
+      const crudo = error instanceof Error ? error.message : '';
+      // El backend devuelve este texto en inglés cuando una prenda se quedó sin stock.
+      const mensaje = /unavailable or out of stock/i.test(crudo)
+        ? 'Alguna prenda de tu pedido ya no tiene stock. Quítala del carrito y vuelve a confirmar.'
+        : (crudo || 'No se pudo crear el pedido.');
+      dispatchToast(<Toast><ToastTitle>{mensaje}</ToastTitle></Toast>, { intent: 'error' });
+    }
   };
   return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
@@ -240,7 +266,7 @@ function Storefront() {
       <p className="eyebrow">PEDIDO CONFIRMADO</p>
       <h3>Pedido #{recibo.id.slice(0, 8)}</h3>
       <ul className="recibo-lines">
-        {recibo.items.map(it => <li key={`${it.name}-${it.size}-${it.color}`}><span>{it.quantity} × {it.name} <small>{it.size} / {it.color}</small></span><strong>{money(it.lineTotal)}</strong></li>)}
+        {(recibo.items ?? []).map(it => <li key={`${it.name}-${it.size}-${it.color}`}><span>{it.quantity} × {it.name} <small>{it.size} / {it.color}</small></span><strong>{money(it.lineTotal)}</strong></li>)}
       </ul>
       <strong className="sheet-price">Total: {money(recibo.total)}</strong>
       <p className="sheet-hint">👤 {recibo.customerName} · 📞 {recibo.customerPhone}</p>
@@ -329,4 +355,22 @@ function App() {
   useEffect(() => { if (!admin && esRutaAdmin()) history.replaceState(null, '', location.pathname + location.search); }, [admin]);
   return admin ? <AdminApp /> : <Storefront />;
 }
-createRoot(document.getElementById('root')!).render(<App />);
+/**
+ * Red de seguridad de la tienda: si un render falla (como pasaba con un pedido sin `items`),
+ * React desmontaba toda la app y quedaba la pantalla en blanco, sin explicación. Con esto se
+ * muestra un aviso legible y un botón para recargar.
+ */
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error('Error en la tienda Jenny:', error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return <div className="fatal">
+      <h1>Algo salió mal 😕</h1>
+      <p>{this.state.error.message}</p>
+      <button type="button" onClick={() => location.reload()}>Recargar la tienda</button>
+    </div>;
+  }
+}
+createRoot(document.getElementById('root')!).render(<ErrorBoundary><App /></ErrorBoundary>);
