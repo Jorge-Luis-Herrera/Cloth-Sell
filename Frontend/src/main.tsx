@@ -22,6 +22,10 @@ const mensajeWhatsapp = (order: Order) => {
   return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)}\n\n${lineas}\n\nTotal: ${money(order.total)}\n\n👤 ${order.customerName}\n📞 ${order.customerPhone}\n📍 ${order.deliveryAddress}${order.notes ? `\n📝 ${order.notes}` : ''}`;
 };
 
+/** Versión corta del mensaje: `wa.me` NO acepta URLs muy largas y, si se pasa,
+ *  abre el chat VACÍO (justo lo que pasaba). En ese caso mandamos este resumen. */
+const mensajeCorto = (order: Order) => `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)} (${order.items.length} ${order.items.length === 1 ? 'prenda' : 'prendas'}). Total: ${money(order.total)}. 👤 ${order.customerName} · 📞 ${order.customerPhone}`;
+
 const PAGE_SIZE = 12;
 
 /** Tarjeta del catálogo hecha a mano (sin el <Card> de Fluent, que imponía su
@@ -167,12 +171,15 @@ function Storefront() {
     setGps({ lat: Number(m[1]), lng: Number(m[2]) });
     setGpsError(null); setGpsManual('');
   };
-  /** Enlace NORMAL de WhatsApp, apuntando a WhatsApp Web (`web.whatsapp.com/send`).
-   *  Es el enlace oficial que él mismo ofrece: en el teléfono pregunta/abre la app,
-   *  y en la PC abre WhatsApp Web. Sin esquemas raros (`intent://`, `whatsapp://`),
-   *  que eran los que dejaban la pantalla en blanco en algunos teléfonos.
-   *  Se usa como `href` de un enlace real, así el propio sistema decide qué abrir. */
-  const whatsappHref = (texto: string) => `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(texto)}`;
+  /** Enlace de WhatsApp. Misma lógica que la pizzería (que SÍ funciona):
+   *  URL `wa.me` con el pedido escrito; si el mensaje completo deja la URL demasiado
+   *  larga se manda uno corto, porque `wa.me` abre el chat VACÍO cuando se pasa. */
+  const whatsappHref = (order: Order) => {
+    const base = `https://wa.me/${WHATSAPP_NUMBER}?text=`;
+    const larga = base + encodeURIComponent(mensajeWhatsapp(order));
+    if (larga.length <= 1800) return larga;
+    return base + encodeURIComponent(mensajeCorto(order));
+  };
   /** Plan C: copia el pedido al portapapeles para pegarlo a mano en el chat de la tienda. */
   const copiarPedido = async (texto: string) => {
     try { await navigator.clipboard.writeText(texto); }
@@ -187,14 +194,20 @@ function Storefront() {
     // El GPS viaja DENTRO de deliveryAddress (aparte de lo escrito a mano), para que quede
     // registrado en el pedido sin cambiar el schema del backend.
     const gpsLine = gps ? `\n📍 GPS: ${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)} (https://www.google.com/maps?q=${gps.lat},${gps.lng})` : '';
+    // Ventana abierta de forma SÍNCRONA, dentro del clic (gesto del usuario). Igual que en la
+    // pizzería: si se abriera DESPUÉS del fetch, el navegador la bloquearía y el cliente nunca
+    // vería WhatsApp. Después la llevamos al chat con el pedido ya escrito.
+    const waWindow = window.open('', '_blank');
     try {
       const pedido = await api.order({ customerName: data.get('name'), customerPhone: data.get('phone'), deliveryAddress: address + gpsLine, notes: data.get('notes'), items: cart.map(line => ({ variantId: line.variant.id, quantity: line.quantity })) }) as Order | null;
       if (!pedido) throw new Error('El servidor no devolvió el pedido creado.');
       setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(pedido);
+      // Llevamos la ventana ya abierta al chat de WhatsApp con el pedido (sin bloqueos).
+      if (waWindow) waWindow.location.href = whatsappHref(pedido);
       // Recordamos los datos para el próximo pedido (nombre, teléfono, dirección y notas).
       const recuerdo: DatosCliente = { name: String(data.get('name') ?? '').trim(), phone: String(data.get('phone') ?? '').trim(), address, notes: String(data.get('notes') ?? '').trim() };
       localStorage.setItem(DATOS_CLIENTE_KEY, JSON.stringify(recuerdo)); setGuardados(recuerdo);
-    } catch (error) { dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
+    } catch (error) { if (waWindow) waWindow.close(); dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
   };
   return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
@@ -232,7 +245,7 @@ function Storefront() {
       <strong className="sheet-price">Total: {money(recibo.total)}</strong>
       <p className="sheet-hint">👤 {recibo.customerName} · 📞 {recibo.customerPhone}</p>
       <p className="recibo-address">{recibo.deliveryAddress}</p>
-      <a className="wa-btn" href={whatsappHref(mensajeWhatsapp(recibo))} target="_blank" rel="noreferrer">Abrir WhatsApp con el pedido 💬</a>
+      <a className="wa-btn" href={whatsappHref(recibo)} target="_blank" rel="noreferrer">Abrir WhatsApp con el pedido 💬</a>
       <button type="button" className="wa-copy" onClick={() => void copiarPedido(mensajeWhatsapp(recibo))}>Copiar pedido</button>
       <p className="sheet-hint">El botón verde abre WhatsApp (la app) con el pedido ya escrito. Si no abriera, toca «Copiar pedido» y pégalo en el chat de la tienda <strong>{WHATSAPP_NUMBER}</strong>.</p>
     </div>
