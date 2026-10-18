@@ -22,8 +22,8 @@ const PAGE_SIZE = 12;
 function Storefront() {
   const [products, setProducts] = useState<Product[]>([]), [loading, setLoading] = useState(true), [loadingMore, setLoadingMore] = useState(false), [query, setQuery] = useState(''), [busqueda, setBusqueda] = useState(''), [total, setTotal] = useState(0), [page, setPage] = useState(1), [hasMore, setHasMore] = useState(false), [cart, setCart] = useState<CartLine[]>(readCart), [selected, setSelected] = useState<Record<string, string>>({}), [checkout, setCheckout] = useState(false), [sent, setSent] = useState(false);
   // Ficha de producto: abrir la imagen del catalogo muestra una hoja flotante con la foto y
-  // los detalles delante; dentro de la hoja, tocar la foto alterna fotografia normal/ampliada.
-  const [detail, setDetail] = useState<Product | null>(null), [zoomed, setZoomed] = useState(false);
+  // los detalles delante; dentro de la hoja, tocar la foto abre la imagen completa en pantalla.
+  const [detail, setDetail] = useState<Product | null>(null), [foto, setFoto] = useState<string | null>(null);
   // GPS de la entrega: se pide con el boton del checkout, se previsualiza en el mapa
   // (embed de Google Maps) y viaja aparte de la direccion escrita en el pedido.
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
@@ -56,13 +56,13 @@ function Storefront() {
   // Espera medio segundo tras escribir para no lanzar una peticion por cada tecla.
   useEffect(() => { const t = window.setTimeout(() => setBusqueda(query), 350); return () => window.clearTimeout(t); }, [query]);
 
-  // La ficha se cierra con Escape, como en el resto de la web (para que no haya que cazar la X).
+  // Escape cierra por capas: primero la foto completa, luego la ficha.
   useEffect(() => {
     if (!detail) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDetail(null); };
+    const onKey = (e: KeyboardEvent) => { if (e.key !== 'Escape') return; if (foto) setFoto(null); else setDetail(null); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [detail]);
+  }, [detail, foto]);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
@@ -108,14 +108,14 @@ function Storefront() {
       setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(pedido);
     } catch (error) { dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
   };
-  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <Card className="product-card" key={product.id}><div className="product-image" role="button" tabIndex={0} aria-label={`Ver detalle de ${product.name}`} onClick={() => { setDetail(product); setZoomed(false); }} onKeyDown={e => { if (e.key === 'Enter') { setDetail(product); setZoomed(false); } }}>{product.images[0] ? <img src={product.images[0].url} alt={product.images[0].altText} /> : <span>{product.name.slice(0, 1)}</span>}<span className="tag">{variant?.stockQuantity ? 'Disponible' : 'Agotado'}</span></div><div className="product-info"><div><h3>{product.name}</h3><p>{product.description}</p></div><strong>{money(variant?.price ?? product.basePrice)}</strong></div><div className="variant-row">{product.variants.map(v => <Button key={v.id} size="small" appearance={variant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [product.id]: v.id })}>{v.size} / {v.color}</Button>)}</div><Button disabled={!variant?.stockQuantity} onClick={() => variant && add(product, variant)}>{variant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button></Card>})}</div>}
+  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <Card className="product-card" key={product.id}><div className="product-image" role="button" tabIndex={0} aria-label={`Ver detalle de ${product.name}`} onClick={() => { setDetail(product); }} onKeyDown={e => { if (e.key === 'Enter') { setDetail(product); } }}>{product.images[0] ? <img src={product.images[0].url} alt={product.images[0].altText} /> : <span>{product.name.slice(0, 1)}</span>}<span className="tag">{variant?.stockQuantity ? 'Disponible' : 'Agotado'}</span></div><div className="product-info"><div><h3>{product.name}</h3><p>{product.description}</p></div><strong>{money(variant?.price ?? product.basePrice)}</strong></div><div className="variant-row">{product.variants.map(v => <Button key={v.id} size="small" appearance={variant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [product.id]: v.id })}>{v.size} / {v.color}</Button>)}</div><Button disabled={!variant?.stockQuantity} onClick={() => variant && add(product, variant)}>{variant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button></Card>})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
           </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0];
   return <div className="sheet-veil" onClick={() => setDetail(null)}>
   <section className="sheet" role="dialog" aria-modal="true" aria-label={detail.name} onClick={e => e.stopPropagation()}>
     <button className="sheet-close" aria-label="Cerrar ficha de producto" onClick={() => setDetail(null)}>×</button>
-    <div className={`sheet-photo${zoomed ? ' zoomed' : ''}`} title={zoomed ? 'Toca para reducir' : 'Toca para agrandar'} onClick={() => setZoomed(z => !z)}>
+    <div className="sheet-photo" title="Toca para verla completa en pantalla" onClick={() => { if (detail.images[0]) setFoto(detail.images[0].url); }}>
       {detail.images[0] ? <img src={detail.images[0].url} alt={detail.images[0].altText} /> : <span>{detail.name.slice(0, 1)}</span>}
     </div>
     <div className="sheet-info">
@@ -125,9 +125,13 @@ function Storefront() {
       <strong className="sheet-price">{money(sheetVariant?.price ?? detail.basePrice)}</strong>
       <div className="sheet-variants">{detail.variants.map(v => <Button key={v.id} size="small" appearance={sheetVariant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [detail.id]: v.id })}>{v.size} / {v.color}</Button>)}</div>
       <Button appearance="primary" disabled={!sheetVariant?.stockQuantity} onClick={() => sheetVariant && add(detail, sheetVariant)}>{sheetVariant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button>
-      <p className="sheet-hint">{sheetVariant?.stockQuantity ? `Disponible · ${sheetVariant.stockQuantity} en inventario` : 'Agotado'} · Toca la foto para agrandar o reducir.</p>
+      <p className="sheet-hint">{sheetVariant?.stockQuantity ? `Disponible · ${sheetVariant.stockQuantity} en inventario` : 'Agotado'} · Toca la foto para verla completa en pantalla.</p>
     </div>
   </section></div>; })()}
+  {foto && <div className="lightbox" onClick={() => setFoto(null)}>
+    <button className="lightbox-close" aria-label="Cerrar foto" onClick={() => setFoto(null)}>×</button>
+    <img src={foto} alt={detail?.name ?? ''} onClick={e => e.stopPropagation()} />
+  </div>}
   {recibo && <div className="sheet-veil" onClick={() => setRecibo(null)}>
   <section className="sheet receipt" role="dialog" aria-modal="true" aria-label="Pedido confirmado" onClick={e => e.stopPropagation()}>
     <button className="sheet-close" aria-label="Cerrar resumen de pedido" onClick={() => setRecibo(null)}>×</button>

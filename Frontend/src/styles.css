@@ -159,18 +159,21 @@
 .sheet-close:hover{background:var(--j-red)}
 /* La foto es una de las dos columnas: responder "¿a que falta clicar?" con el cursor zoom. */
 .sheet-photo{min-height:440px;background:#e5ded5;display:grid;place-items:center;overflow:hidden;cursor:zoom-in;color:#c28a72;font:italic 120px Georgia}
-.sheet-photo img{width:100%;height:100%;object-fit:cover;transition:transform .25s ease-out}
-.sheet-photo.zoomed{cursor:zoom-out}
-.sheet-photo.zoomed img{transform:scale(2.15)}
+.sheet-photo img{width:100%;height:100%;object-fit:cover}
 .sheet-info{padding:30px 28px 26px;display:grid;gap:14px;align-content:start}
 .sheet-info h3{margin:0;font-family:'Playfair Display',serif;font-size:30px;line-height:1.08}
 .sheet-info>p{margin:0;color:#877d74;font-size:14px}
 .sheet-price{font-family:'Playfair Display',serif;font-size:26px}
 .sheet-variants{display:flex;gap:5px;flex-wrap:wrap}
 .sheet-variants:empty{display:none}
-.sheet-hint{margin:0;font-size:12px;color:#897e74}
-.sheet-info>button{width:100%}
+.sheet-hint{margin:0;font-size:12px;color:#897e74}.sheet-info>button{width:100%}
 @media(max-width:820px){.sheet{grid-template-columns:1fr}.sheet-photo{min-height:0;aspect-ratio:1/1;font-size:72px}}
+
+/* ── Foto completa en pantalla (lightbox) ────────────────────────────── */
+.lightbox{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:#2b2927e6;padding:24px;animation:adm-in .15s ease-out}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;box-shadow:0 24px 70px #2b29274d}
+.lightbox-close{position:fixed;top:18px;right:20px;width:44px;height:44px;border:none;border-radius:50%;background:#000000a8;color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.lightbox-close:hover{background:var(--j-red)}
 
 /* ── GPS en el checkout y cartelito de confirmación ─────────────────── */
 .gps-block{display:grid;gap:8px}
