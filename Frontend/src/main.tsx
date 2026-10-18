@@ -67,6 +67,9 @@ function Storefront() {
   // GPS de la entrega: se pide con el boton del checkout, se previsualiza en el mapa
   // (embed de Google Maps) y viaja aparte de la direccion escrita en el pedido.
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
+  // Plan B de la ubicación: si el equipo no logra ubicar al cliente, se muestran las
+  // coordenadas pegadas a mano (de Google Maps) para no perder el punto de entrega.
+  const [gpsError, setGpsError] = useState<string | null>(null), [gpsManual, setGpsManual] = useState('');
   // Cartelito de confirmacion: pedido creado (respuesta del backend) resumen + WhatsApp.
   const [recibo, setRecibo] = useState<Order | null>(null);
   const toasterId = useId('toaster'), { dispatchToast } = useToastController(toasterId);
@@ -129,16 +132,31 @@ function Storefront() {
   const changeQty = (variantId: string, delta: number) => setCart(current => current.flatMap(line => { if (line.variant.id !== variantId) return [line]; const next = Math.min(Math.max(line.quantity + delta, 0), Math.max(line.variant.stockQuantity, 1)); return next <= 0 ? [] : [{ ...line, quantity: next }]; }));
   /** Quita una prenda entera del pedido. */
   const removeLine = (variantId: string) => setCart(current => current.filter(line => line.variant.id !== variantId));
-  /** Captura la ubicacion GPS y la deja en el estado para el pedido. Si el cliente no la da,
-   *  el pedido sale igual: solo pierde el punto del mapa. */
-  const takeGps = () => {
-    if (!('geolocation' in navigator)) { dispatchToast(<Toast><ToastTitle>Este navegador no da ubicación.</ToastTitle></Toast>, { intent: 'error' }); return; }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (error) => dispatchToast(
-        <Toast><ToastTitle>{error.code === error.PERMISSION_DENIED ? 'No diste permiso a tu ubicación.' : 'No pudimos obtener tu ubicación.'}</ToastTitle></Toast>,
-        { intent: 'error' }),
-      { enableHighAccuracy: true, timeout: 20000 });
+  /** Ubica al cliente en dos intentos: primero por red (rápido, y sí funciona en laptops sin
+   *  GPS), y si falla con alta precisión. Como último recurso, se ofrecen las coordenadas pegadas
+   *  a mano: así el punto de entrega no se pierde aunque el equipo no sepa dónde está. */
+  const takeGps = async () => {
+    if (!('geolocation' in navigator)) { setGpsError('Este navegador no da ubicación. Pega las coordenadas a mano.'); return; }
+    setGpsError(null);
+    const pedir = (opciones: PositionOptions) => new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, opciones));
+    const intentos: PositionOptions[] = [{ enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }];
+    let ultimo: GeolocationPositionError | null = null;
+    for (const intento of intentos) {
+      try { const pos = await pedir(intento); setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude }); return; }
+      catch (e) { ultimo = e as GeolocationPositionError; if (ultimo.code === 1) break; }
+    }
+    const aviso = ultimo?.code === 1
+      ? 'Bloqueaste el permiso de ubicación. Actívalo desde el candado de la barra de direcciones, o pega las coordenadas a mano.'
+      : 'Tu equipo no pudo ubicarte automáticamente (pasa en laptops sin GPS). Pega las coordenadas de Google Maps a mano.';
+    setGpsError(aviso);
+    dispatchToast(<Toast><ToastTitle>{aviso}</ToastTitle></Toast>, { intent: 'error' });
+  };
+  /** Toma coordenadas pegadas a mano: sirve «23.1136, -82.3666» o un enlace de Google Maps. */
+  const usarGpsManual = () => {
+    const m = gpsManual.match(/(-?\d{1,3}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)/);
+    if (!m) { dispatchToast(<Toast><ToastTitle>Pega algo como «23.1136, -82.3666».</ToastTitle></Toast>, { intent: 'error' }); return; }
+    setGps({ lat: Number(m[1]), lng: Number(m[2]) });
+    setGpsError(null); setGpsManual('');
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -207,9 +225,16 @@ function Storefront() {
     <Field label="Teléfono" required><Input name="phone" required /></Field>
     <Field label="Dirección de entrega" required><Textarea name="address" required /></Field>
     <div className="gps-block">
-      <Button type="button" appearance="outline" onClick={takeGps}>{gps ? '📍 Repetir ubicación GPS' : '📍 Usar mi ubicación GPS'}</Button>
+      <Button type="button" appearance="outline" onClick={() => void takeGps()}>{gps ? '📍 Repetir ubicación GPS' : '📍 Usar mi ubicación GPS'}</Button>
       {gps && <iframe className="gps-map" title="Punto de entrega en el mapa" src={`https://maps.google.com/maps?q=${gps.lat},${gps.lng}&z=15&output=embed`} loading="lazy" />}
-      <p className="gps-hint">{gps ? <>Punto de entrega adjunto ✓ — <a href={`https://www.google.com/maps?q=${gps.lat},${gps.lng}`} target="_blank" rel="noreferrer">abrir en Google Maps</a></> : 'Opcional: adjunta tu punto en el mapa para que la entrega te encuentre justo ahí.'}</p>
+      {gps ? <p className="gps-hint">Punto de entrega adjunto ✓ — <a href={`https://www.google.com/maps?q=${gps.lat},${gps.lng}`} target="_blank" rel="noreferrer">abrir en Google Maps</a></p> : <>
+        {gpsError && <p className="gps-hint gps-error">{gpsError}</p>}
+        <p className="gps-hint">Opcional: si tu equipo no te ubica, abre <a href="https://www.google.com/maps" target="_blank" rel="noreferrer">Google Maps</a>, mantén pulsado tu punto y pega aquí las coordenadas.</p>
+        <div className="gps-manual">
+          <Input aria-label="Coordenadas de entrega" placeholder="23.1136, -82.3666" value={gpsManual} onChange={(_, d) => setGpsManual(d.value)} />
+          <Button type="button" appearance="outline" onClick={usarGpsManual} disabled={!gpsManual.trim()}>Usar</Button>
+        </div>
+      </>}
     </div>
     <Field label="Notas"><Textarea name="notes" /></Field>
     <div className="cart-foot">
