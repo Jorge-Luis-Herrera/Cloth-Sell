@@ -187,3 +187,41 @@
 .recibo-lines span{min-width:0}
 .recibo-lines small{display:block;color:#897e74}
 .recibo-address{margin:0;white-space:pre-wrap;border-left:3px solid var(--j-clay);padding:9px 13px;background:var(--j-cream);font-size:13px}
+
+/* ── Catálogo: tarjetas hechas a mano (reemplazan al <Card> de Fluent) ─── */
+/* Rejilla flexible: 2-4 columnas según el ancho, sin anchos fijos que rompan. */
+.catalog .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:26px}
+.pcard{display:flex;flex-direction:column;background:#fff;border:none;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px #2b292714;transition:transform .22s ease,box-shadow .22s ease}
+.pcard:hover{transform:translateY(-4px);box-shadow:0 22px 48px #2b292726}
+.pcard-media{position:relative;display:block;width:100%;margin:0;padding:0;border:none;background:#efe9e1;aspect-ratio:4/5;overflow:hidden;cursor:pointer}
+.pcard-media img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.pcard:hover .pcard-media img{transform:scale(1.06)}
+.pcard-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 96px Georgia;color:#c28a72}
+.pcard-badge{position:absolute;top:12px;left:12px;padding:5px 11px;border-radius:999px;background:#fffffff2;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#2c6b57;box-shadow:0 2px 10px #2b29271f}
+.pcard-badge[data-off="true"]{color:#877d74}
+.pcard-hint{position:absolute;left:50%;bottom:14px;transform:translate(-50%,10px);opacity:0;padding:8px 16px;border-radius:999px;background:#2b2927d9;color:#fff;font-size:12px;font-weight:600;white-space:nowrap;transition:opacity .25s ease,transform .25s ease;pointer-events:none}
+.pcard:hover .pcard-hint{opacity:1;transform:translate(-50%,0)}
+.pcard-body{display:flex;flex-direction:column;gap:10px;flex:1;padding:16px 16px 18px}
+.pcard-name{margin:0;font-size:16px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.pcard-desc{margin:0;color:#877d74;font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard-variants{display:flex;flex-wrap:wrap;gap:6px}
+.pcard-chip{padding:5px 11px;border:1px solid #e4ded6;border-radius:999px;background:#fff;color:#877d74;font-size:12px;cursor:pointer;transition:.15s}
+.pcard-chip:hover:not(:disabled){border-color:#d5654d;color:#d5654d}
+.pcard-chip[data-on="true"]{background:#2b2927;border-color:#2b2927;color:#fff}
+.pcard-chip:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.pcard-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:13px;border-top:1px solid #f0ebe4}
+.pcard-price{font-family:'Playfair Display',serif;font-size:21px;white-space:nowrap}
+.pcard-add{padding:10px 20px;border:none;border-radius:999px;background:#d5654d;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.18s}
+.pcard-add:hover:not(:disabled){background:#c1543d;transform:translateY(-1px)}
+.pcard-add:disabled{background:#efe9e1;color:#a99f95;cursor:not-allowed}
+@media(max-width:760px){
+  .catalog .product-grid{grid-template-columns:1fr 1fr;gap:14px}
+  .pcard{border-radius:16px}
+  .pcard-body{padding:12px 12px 14px;gap:8px}
+  .pcard-name{font-size:14px}
+  .pcard-desc{-webkit-line-clamp:1;font-size:12px}
+  .pcard-price{font-size:16px}
+  .pcard-add{padding:8px 13px;font-size:12px}
+  .pcard-chip{padding:4px 9px;font-size:11px}
+  .pcard-hint{display:none}
+}

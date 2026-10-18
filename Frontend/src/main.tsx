@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Card, Field, Input, Select, Spinner, Tab, TabList, Textarea, Toaster, useId, useToastController, Toast, ToastTitle } from '@fluentui/react-components';
+import { Button, Field, Input, Select, Spinner, Tab, TabList, Textarea, Toaster, useId, useToastController, Toast, ToastTitle } from '@fluentui/react-components';
 import { STORE_CURRENCY, STORE_LOCALE, api, CartLine, Order, Product, Variant } from './api';
 import { AdminApp } from './admin/AdminApp';
 import './styles.css';
@@ -18,6 +18,43 @@ const mensajeWhatsapp = (order: Order) => {
 };
 
 const PAGE_SIZE = 12;
+
+/** Tarjeta del catálogo hecha a mano (sin el <Card> de Fluent, que imponía su
+ *  propio border-radius de 4px y dejaba las esquinas puntiagudas). Es puro React +
+ *  CSS: esquinas redondeadas, sombra suave, imagen que hace zoom al pasar el ratón
+ *  y las imágenes en `loading="lazy"` para no perder velocidad de carga. */
+function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVariant, onAdd }: {
+  product: Product; variant?: Variant; activeVariantId?: string;
+  onOpen: () => void; onSelectVariant: (id: string) => void; onAdd: () => void;
+}) {
+  const disponible = !!variant?.stockQuantity;
+  return (
+    <article className="pcard">
+      <button type="button" className="pcard-media" aria-label={`Ver detalle de ${product.name}`} onClick={onOpen}>
+        {product.images[0]
+          ? <img src={product.images[0].url} alt={product.images[0].altText} loading="lazy" decoding="async" />
+          : <span className="pcard-initial">{product.name.slice(0, 1)}</span>}
+        <span className="pcard-badge" data-off={!disponible}>{disponible ? 'Disponible' : 'Agotado'}</span>
+        <span className="pcard-hint">Ver detalles</span>
+      </button>
+      <div className="pcard-body">
+        <h3 className="pcard-name">{product.name}</h3>
+        {product.description ? <p className="pcard-desc">{product.description}</p> : null}
+        {product.variants.length > 0 && (
+          <div className="pcard-variants">
+            {product.variants.map(v => (
+              <button type="button" key={v.id} className="pcard-chip" data-on={activeVariantId === v.id} disabled={!v.stockQuantity} onClick={() => onSelectVariant(v.id)}>{v.size} / {v.color}</button>
+            ))}
+          </div>
+        )}
+        <div className="pcard-foot">
+          <strong className="pcard-price">{money(variant?.price ?? product.basePrice)}</strong>
+          <button type="button" className="pcard-add" disabled={!disponible} onClick={onAdd}>{disponible ? 'Añadir' : 'Sin stock'}</button>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 function Storefront() {
   const [products, setProducts] = useState<Product[]>([]), [loading, setLoading] = useState(true), [loadingMore, setLoadingMore] = useState(false), [query, setQuery] = useState(''), [busqueda, setBusqueda] = useState(''), [total, setTotal] = useState(0), [page, setPage] = useState(1), [hasMore, setHasMore] = useState(false), [cart, setCart] = useState<CartLine[]>(readCart), [selected, setSelected] = useState<Record<string, string>>({}), [checkout, setCheckout] = useState(false), [sent, setSent] = useState(false);
@@ -108,7 +145,7 @@ function Storefront() {
       setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(pedido);
     } catch (error) { dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
   };
-  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <Card className="product-card" key={product.id}><div className="product-image" role="button" tabIndex={0} aria-label={`Ver detalle de ${product.name}`} onClick={() => { setDetail(product); }} onKeyDown={e => { if (e.key === 'Enter') { setDetail(product); } }}>{product.images[0] ? <img src={product.images[0].url} alt={product.images[0].altText} /> : <span>{product.name.slice(0, 1)}</span>}<span className="tag">{variant?.stockQuantity ? 'Disponible' : 'Agotado'}</span></div><div className="product-info"><div><h3>{product.name}</h3><p>{product.description}</p></div><strong>{money(variant?.price ?? product.basePrice)}</strong></div><div className="variant-row">{product.variants.map(v => <Button key={v.id} size="small" appearance={variant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [product.id]: v.id })}>{v.size} / {v.color}</Button>)}</div><Button disabled={!variant?.stockQuantity} onClick={() => variant && add(product, variant)}>{variant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button></Card>})}</div>}
+  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
           </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0];
