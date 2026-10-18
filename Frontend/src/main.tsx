@@ -167,33 +167,18 @@ function Storefront() {
     setGps({ lat: Number(m[1]), lng: Number(m[2]) });
     setGpsError(null); setGpsManual('');
   };
-  /** Enlace para abrir WhatsApp con el pedido, adaptado al teléfono:
-   *  Android usa `intent://` (abre la app directo, sin pasar por ninguna web — importante en
-   *  redes donde wa.me está capado); iPhone usa el esquema `whatsapp://`; y en PC, wa.me.
-   *  Se usa como `href` de un enlace real: los móviles solo abren la app con un toque directo. */
-  const whatsappHref = (texto: string) => {
-    const enc = encodeURIComponent(texto);
-    const ua = navigator.userAgent;
-    if (/Android/i.test(ua)) return `intent://send?phone=${WHATSAPP_NUMBER}&text=${enc}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(`https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`)};end`;
-    if (/iPhone|iPad|iPod/i.test(ua)) return `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${enc}`;
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`;
-  };
+  /** Enlace NORMAL de WhatsApp: `wa.me` con el número y el pedido ya escrito.
+   *  Es el enlace oficial: en el teléfono WhatsApp lo intercepta y ofrece abrir la app;
+   *  en la PC abre WhatsApp Web. Nada de esquemas raros (`intent://`, `whatsapp://`):
+   *  esos eran los que dejaban la pantalla en blanco en algunos teléfonos.
+   *  Se usa como `href` de un enlace real, así el propio sistema pregunta si abrir la app. */
+  const whatsappHref = (texto: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(texto)}`;
   /** Plan C: copia el pedido al portapapeles para pegarlo a mano en el chat de la tienda. */
   const copiarPedido = async (texto: string) => {
     try { await navigator.clipboard.writeText(texto); }
     catch { const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
     dispatchToast(<Toast><ToastTitle>Pedido copiado. Ábrelo en WhatsApp y pégalo en el chat de la tienda.</ToastTitle></Toast>, { intent: 'success' });
   };
-  // Al confirmar el pedido, mandamos a WhatsApp OTRA VEZ de forma automática, con el enlace
-  // correcto para cada teléfono (intent:// en Android abre la app sin pantalla en blanco).
-  // Damos medio segundo para que se vea el recibo antes de saltar.
-  useEffect(() => {
-    if (!recibo) return;
-    const url = whatsappHref(mensajeWhatsapp(recibo));
-    const esMovil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const t = window.setTimeout(() => { if (esMovil) window.location.href = url; else window.open(url, '_blank'); }, 600);
-    return () => window.clearTimeout(t);
-  }, [recibo]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
