@@ -107,16 +107,6 @@ function Storefront() {
     return () => window.removeEventListener('keydown', onKey);
   }, [detail, foto]);
 
-  // Al confirmar, intentamos abrir WhatsApp solo. En el móvil usamos el esquema de la app
-  // (whatsapp://), que no pasa por wa.me —capado en algunas redes móviles—. Si no abre, el
-  // recibo queda con el botón verde y la opción de copiar el pedido.
-  useEffect(() => {
-    if (!recibo) return;
-    if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
-      window.location.href = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(mensajeWhatsapp(recibo))}`;
-    }
-  }, [recibo]);
-
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
@@ -168,14 +158,16 @@ function Storefront() {
     setGps({ lat: Number(m[1]), lng: Number(m[2]) });
     setGpsError(null); setGpsManual('');
   };
-  /** Abre WhatsApp con el pedido. En el móvil usa el esquema propio de la app (whatsapp://),
-   *  que NO pasa por la web: en redes donde `wa.me` está capado, esto sí abre WhatsApp. Si la
-   *  app no responde, cae al enlace web como segundo intento. */
-  const abrirWhatsapp = (texto: string) => {
+  /** Enlace para abrir WhatsApp con el pedido, adaptado al teléfono:
+   *  Android usa `intent://` (abre la app directo, sin pasar por ninguna web — importante en
+   *  redes donde wa.me está capado); iPhone usa el esquema `whatsapp://`; y en PC, wa.me.
+   *  Se usa como `href` de un enlace real: los móviles solo abren la app con un toque directo. */
+  const whatsappHref = (texto: string) => {
     const enc = encodeURIComponent(texto);
-    if (!/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) { window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`, '_blank'); return; }
-    window.location.href = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${enc}`;
-    window.setTimeout(() => { if (!document.hidden) window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`; }, 1600);
+    const ua = navigator.userAgent;
+    if (/Android/i.test(ua)) return `intent://send?phone=${WHATSAPP_NUMBER}&text=${enc}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(`https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`)};end`;
+    if (/iPhone|iPad|iPod/i.test(ua)) return `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${enc}`;
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`;
   };
   /** Plan C: copia el pedido al portapapeles para pegarlo a mano en el chat de la tienda. */
   const copiarPedido = async (texto: string) => {
@@ -233,9 +225,9 @@ function Storefront() {
       <strong className="sheet-price">Total: {money(recibo.total)}</strong>
       <p className="sheet-hint">👤 {recibo.customerName} · 📞 {recibo.customerPhone}</p>
       <p className="recibo-address">{recibo.deliveryAddress}</p>
-      <a className="wa-btn" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`} onClick={(e) => { if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) { e.preventDefault(); abrirWhatsapp(mensajeWhatsapp(recibo)); } }} target="_blank" rel="noreferrer">Abrir WhatsApp con el pedido 💬</a>
+      <a className="wa-btn" href={whatsappHref(mensajeWhatsapp(recibo))} target="_blank" rel="noreferrer">Abrir WhatsApp con el pedido 💬</a>
       <button type="button" className="wa-copy" onClick={() => void copiarPedido(mensajeWhatsapp(recibo))}>Copiar pedido</button>
-      <p className="sheet-hint">Si no se abre solo, toca el botón verde. Si aun así no abre, dale a «Copiar pedido» y pégalo en el chat de la tienda <strong>{WHATSAPP_NUMBER}</strong>.</p>
+      <p className="sheet-hint">El botón verde abre WhatsApp (la app) con el pedido ya escrito. Si no abriera, toca «Copiar pedido» y pégalo en el chat de la tienda <strong>{WHATSAPP_NUMBER}</strong>.</p>
     </div>
   </section></div>}
   <aside className={`cart-drawer ${cartOpen ? 'open' : ''}`} aria-label="Carrito">
