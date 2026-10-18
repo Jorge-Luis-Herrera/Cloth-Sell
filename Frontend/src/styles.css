@@ -279,3 +279,9 @@
 .wa-btn:hover{background:#1ebe5b;color:#0b3d1e}
 .wa-copy{display:block;width:100%;padding:11px 16px;border:1px solid #e4ded6;border-radius:999px;background:#fff;color:#2b2927;font-size:14px;font-weight:600;cursor:pointer;transition:.18s}
 .wa-copy:hover{border-color:#25d366;color:#128c3e}
+
+/* Aviso de «rellenar con mis datos» en el checkout. */
+.cart-fill{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px dashed #d5654d66;border-radius:14px;background:#fdf6f2}
+.cart-fill-text{margin:0;font-size:13px;color:#877d74}
+.cart-drawer .cart-fill-btn{margin:0;width:auto;padding:7px 12px;border:1px solid #d5654d;border-radius:999px;background:#fff;color:#d5654d;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+.cart-drawer .cart-fill-btn:hover{background:#d5654d;color:#fff}

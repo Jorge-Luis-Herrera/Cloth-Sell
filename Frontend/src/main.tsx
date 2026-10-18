@@ -8,6 +8,11 @@ import './styles.css';
 const money = (value: number) => new Intl.NumberFormat(STORE_LOCALE, { style: 'currency', currency: STORE_CURRENCY }).format(value);
 const readCart = (): CartLine[] => { try { return JSON.parse(localStorage.getItem('jenny-cart') || '[]'); } catch { return []; } };
 
+/** Datos del cliente para el checkout: se recuerdan entre pedidos para no reescribirlos cada vez. */
+type DatosCliente = { name: string; phone: string; address: string; notes: string };
+const DATOS_CLIENTE_KEY = 'jenny-datos-cliente';
+const readDatosCliente = (): DatosCliente | null => { try { const d = JSON.parse(localStorage.getItem(DATOS_CLIENTE_KEY) || 'null'); return d && typeof d.name === 'string' ? d as DatosCliente : null; } catch { return null; } };
+
 /** WhatsApp de la tienda: al confirmar pedido se manda el resumen por aqui. */
 const WHATSAPP_NUMBER = '5354504048';
 
@@ -72,6 +77,10 @@ function Storefront() {
   const [gpsError, setGpsError] = useState<string | null>(null), [gpsManual, setGpsManual] = useState('');
   // Cartelito de confirmacion: pedido creado (respuesta del backend) resumen + WhatsApp.
   const [recibo, setRecibo] = useState<Order | null>(null);
+  // Datos del checkout: `datos` es lo que se escribe ahora; `guardados` es lo del último pedido,
+  // que se puede volver a rellenar con un botón.
+  const [datos, setDatos] = useState<DatosCliente>({ name: '', phone: '', address: '', notes: '' });
+  const [guardados, setGuardados] = useState<DatosCliente | null>(readDatosCliente);
   const toasterId = useId('toaster'), { dispatchToast } = useToastController(toasterId);
   const sentinel = useRef<HTMLDivElement>(null);
 
@@ -187,6 +196,9 @@ function Storefront() {
       const pedido = await api.order({ customerName: data.get('name'), customerPhone: data.get('phone'), deliveryAddress: address + gpsLine, notes: data.get('notes'), items: cart.map(line => ({ variantId: line.variant.id, quantity: line.quantity })) }) as Order | null;
       if (!pedido) throw new Error('El servidor no devolvió el pedido creado.');
       setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(pedido);
+      // Recordamos los datos para el próximo pedido (nombre, teléfono, dirección y notas).
+      const recuerdo: DatosCliente = { name: String(data.get('name') ?? '').trim(), phone: String(data.get('phone') ?? '').trim(), address, notes: String(data.get('notes') ?? '').trim() };
+      localStorage.setItem(DATOS_CLIENTE_KEY, JSON.stringify(recuerdo)); setGuardados(recuerdo);
     } catch (error) { dispatchToast(<Toast><ToastTitle>{error instanceof Error ? error.message : 'No se pudo crear el pedido.'}</ToastTitle></Toast>, { intent: 'error' }); }
   };
   return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
@@ -239,9 +251,13 @@ function Storefront() {
     <button type="button" className="cart-close" aria-label="Cerrar carrito" onClick={() => { setCartOpen(false); setCheckout(false); }}>×</button>
   </div>
   {checkout ? <form onSubmit={submit} className="cart-form">
-    <Field label="Nombre" required><Input name="name" required /></Field>
-    <Field label="Teléfono" required><Input name="phone" required /></Field>
-    <Field label="Dirección de entrega" required><Textarea name="address" required /></Field>
+    {guardados && <div className="cart-fill">
+      <p className="cart-fill-text">¿Ya pediste antes?</p>
+      <button type="button" className="cart-fill-btn" onClick={() => setDatos(guardados)}>↺ Rellenar con mis datos</button>
+    </div>}
+    <Field label="Nombre" required><Input name="name" value={datos.name} onChange={(_, d) => setDatos(v => ({ ...v, name: d.value }))} required /></Field>
+    <Field label="Teléfono" required><Input name="phone" value={datos.phone} onChange={(_, d) => setDatos(v => ({ ...v, phone: d.value }))} required /></Field>
+    <Field label="Dirección de entrega" required><Textarea name="address" value={datos.address} onChange={(_, d) => setDatos(v => ({ ...v, address: d.value }))} required /></Field>
     <div className="gps-block">
       <Button type="button" appearance="outline" onClick={() => void takeGps()}>{gps ? '📍 Repetir ubicación GPS' : '📍 Usar mi ubicación GPS'}</Button>
       {gps && <iframe className="gps-map" title="Punto de entrega en el mapa" src={`https://maps.google.com/maps?q=${gps.lat},${gps.lng}&z=15&output=embed`} loading="lazy" />}
@@ -254,7 +270,7 @@ function Storefront() {
         </div>
       </>}
     </div>
-    <Field label="Notas"><Textarea name="notes" /></Field>
+    <Field label="Notas"><Textarea name="notes" value={datos.notes} onChange={(_, d) => setDatos(v => ({ ...v, notes: d.value }))} /></Field>
     <div className="cart-foot">
       <div className="cart-total"><span>Total</span><strong>{money(totalCarrito)}</strong></div>
       <button type="submit" className="cart-cta">Confirmar pedido · {money(totalCarrito)}</button>
