@@ -107,15 +107,14 @@ function Storefront() {
     return () => window.removeEventListener('keydown', onKey);
   }, [detail, foto]);
 
-  // Al confirmar el pedido, disparamos WhatsApp del tirón con un clic sobre un enlace real
-  // (en el móvil esto sí abre la app; `window.open` lo suelen bloquear). Si el navegador lo
-  // bloquea igual, el enlace grande del recibo queda ahí para mandarlo a mano.
+  // Al confirmar, intentamos abrir WhatsApp solo. En el móvil usamos el esquema de la app
+  // (whatsapp://), que no pasa por wa.me —capado en algunas redes móviles—. Si no abre, el
+  // recibo queda con el botón verde y la opción de copiar el pedido.
   useEffect(() => {
     if (!recibo) return;
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`;
-    const enlace = document.createElement('a');
-    enlace.href = url; enlace.target = '_blank'; enlace.rel = 'noreferrer';
-    document.body.appendChild(enlace); enlace.click(); enlace.remove();
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+      window.location.href = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(mensajeWhatsapp(recibo))}`;
+    }
   }, [recibo]);
 
   const loadMore = async () => {
@@ -169,6 +168,21 @@ function Storefront() {
     setGps({ lat: Number(m[1]), lng: Number(m[2]) });
     setGpsError(null); setGpsManual('');
   };
+  /** Abre WhatsApp con el pedido. En el móvil usa el esquema propio de la app (whatsapp://),
+   *  que NO pasa por la web: en redes donde `wa.me` está capado, esto sí abre WhatsApp. Si la
+   *  app no responde, cae al enlace web como segundo intento. */
+  const abrirWhatsapp = (texto: string) => {
+    const enc = encodeURIComponent(texto);
+    if (!/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) { window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`, '_blank'); return; }
+    window.location.href = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${enc}`;
+    window.setTimeout(() => { if (!document.hidden) window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${enc}`; }, 1600);
+  };
+  /** Plan C: copia el pedido al portapapeles para pegarlo a mano en el chat de la tienda. */
+  const copiarPedido = async (texto: string) => {
+    try { await navigator.clipboard.writeText(texto); }
+    catch { const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    dispatchToast(<Toast><ToastTitle>Pedido copiado. Ábrelo en WhatsApp y pégalo en el chat de la tienda.</ToastTitle></Toast>, { intent: 'success' });
+  };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -219,8 +233,9 @@ function Storefront() {
       <strong className="sheet-price">Total: {money(recibo.total)}</strong>
       <p className="sheet-hint">👤 {recibo.customerName} · 📞 {recibo.customerPhone}</p>
       <p className="recibo-address">{recibo.deliveryAddress}</p>
-      <a className="wa-btn" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`} target="_blank" rel="noreferrer">Enviar pedido por WhatsApp 💬</a>
-      <p className="sheet-hint">Se abre el chat de la tienda ({WHATSAPP_NUMBER}) con el detalle ya escrito: revísalo y mándalo.</p>
+      <a className="wa-btn" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`} onClick={(e) => { if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) { e.preventDefault(); abrirWhatsapp(mensajeWhatsapp(recibo)); } }} target="_blank" rel="noreferrer">Abrir WhatsApp con el pedido 💬</a>
+      <button type="button" className="wa-copy" onClick={() => void copiarPedido(mensajeWhatsapp(recibo))}>Copiar pedido</button>
+      <p className="sheet-hint">Si no se abre solo, toca el botón verde. Si aun así no abre, dale a «Copiar pedido» y pégalo en el chat de la tienda <strong>{WHATSAPP_NUMBER}</strong>.</p>
     </div>
   </section></div>}
   <aside className={`cart-drawer ${cartOpen ? 'open' : ''}`} aria-label="Carrito">
