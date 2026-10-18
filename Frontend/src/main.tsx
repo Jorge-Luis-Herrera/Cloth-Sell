@@ -167,12 +167,12 @@ function Storefront() {
     setGps({ lat: Number(m[1]), lng: Number(m[2]) });
     setGpsError(null); setGpsManual('');
   };
-  /** Enlace NORMAL de WhatsApp: `wa.me` con el número y el pedido ya escrito.
-   *  Es el enlace oficial: en el teléfono WhatsApp lo intercepta y ofrece abrir la app;
-   *  en la PC abre WhatsApp Web. Nada de esquemas raros (`intent://`, `whatsapp://`):
-   *  esos eran los que dejaban la pantalla en blanco en algunos teléfonos.
-   *  Se usa como `href` de un enlace real, así el propio sistema pregunta si abrir la app. */
-  const whatsappHref = (texto: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(texto)}`;
+  /** Enlace NORMAL de WhatsApp, apuntando a WhatsApp Web (`web.whatsapp.com/send`).
+   *  Es el enlace oficial que él mismo ofrece: en el teléfono pregunta/abre la app,
+   *  y en la PC abre WhatsApp Web. Sin esquemas raros (`intent://`, `whatsapp://`),
+   *  que eran los que dejaban la pantalla en blanco en algunos teléfonos.
+   *  Se usa como `href` de un enlace real, así el propio sistema decide qué abrir. */
+  const whatsappHref = (texto: string) => `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(texto)}`;
   /** Plan C: copia el pedido al portapapeles para pegarlo a mano en el chat de la tienda. */
   const copiarPedido = async (texto: string) => {
     try { await navigator.clipboard.writeText(texto); }
