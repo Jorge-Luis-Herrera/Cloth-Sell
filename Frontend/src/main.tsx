@@ -184,6 +184,16 @@ function Storefront() {
     catch { const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
     dispatchToast(<Toast><ToastTitle>Pedido copiado. Ábrelo en WhatsApp y pégalo en el chat de la tienda.</ToastTitle></Toast>, { intent: 'success' });
   };
+  // Al confirmar el pedido, mandamos a WhatsApp OTRA VEZ de forma automática, con el enlace
+  // correcto para cada teléfono (intent:// en Android abre la app sin pantalla en blanco).
+  // Damos medio segundo para que se vea el recibo antes de saltar.
+  useEffect(() => {
+    if (!recibo) return;
+    const url = whatsappHref(mensajeWhatsapp(recibo));
+    const esMovil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const t = window.setTimeout(() => { if (esMovil) window.location.href = url; else window.open(url, '_blank'); }, 600);
+    return () => window.clearTimeout(t);
+  }, [recibo]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
