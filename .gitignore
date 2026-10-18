@@ -4,6 +4,7 @@ Backend-Rust/target/
 Frontend/node_modules/
 Frontend/dist/
 .local-dev/
+deploy/prebuilt/
 Backend/uploads/
 *.db
 *.db-shm

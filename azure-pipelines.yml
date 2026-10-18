@@ -43,6 +43,8 @@ steps:
             WEBSITES_PORT=8080 \
             DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" \
             UPLOADS_DIR=/app/uploads \
+            PUBLIC_SCHEME=https \
+            FRONTEND_DIR=/app/Frontend/dist \
           --output none
         az webapp config set \
           --name "$(webApp)" \

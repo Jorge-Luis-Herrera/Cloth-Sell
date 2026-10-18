@@ -8,6 +8,9 @@ RUN npm run build
 FROM rust:1.89-bookworm AS backend-build
 WORKDIR /src
 COPY Backend-Rust/Cargo.toml Backend-Rust/Cargo.lock* Backend-Rust/
+# Las migraciones se incrustan al compilar (`sqlx::migrate!`), asi que tienen que estar presentes
+# en ese momento: si faltan, el build falla con "error canonicalizing migration directory".
+COPY Backend-Rust/migrations Backend-Rust/migrations
 COPY Backend-Rust/src Backend-Rust/src
 WORKDIR /src/Backend-Rust
 RUN cargo build --release

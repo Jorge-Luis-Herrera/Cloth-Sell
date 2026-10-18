@@ -10,7 +10,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system jenny && useradd --system --gid jenny --home /app --shell /usr/sbin/nologin jenny
 WORKDIR /app
-COPY Backend-Rust/target/release/jenny-api /app/jenny-api
+# Build rápido reutilizando el binario ya compilado en local.
+# El binario llega desde `deploy/prebuilt/jenny-api`, NO desde Backend-Rust/target: ese directorio
+# entero esta en .dockerignore, y antes el fichero de exclusion intentaba re-incluir solo el binario
+# con `!Backend-Rust/target/release/jenny-api`. Docker no funciona asi y acababa mandando 1 GB
+# de contexto en cada build. `deploy-appservice.sh` deja el binario copiado y verificado aqui.
+COPY deploy/prebuilt/jenny-api /app/jenny-api
 COPY --from=frontend-build /src/Frontend/dist /app/Frontend/dist
 RUN mkdir -p /app/data /app/uploads && chown -R jenny:jenny /app
 USER jenny

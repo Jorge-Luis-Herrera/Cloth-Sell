@@ -16,12 +16,23 @@ fi
 if [[ "${1:-}" != "--skip-tests" ]]; then docker build --target backend-build "$PROJECT_DIR"; fi
 # DOCKERFILE lets you reuse an already-compiled binary (Dockerfile.prebuilt) to skip the slow Rust build.
 DOCKERFILE="${DOCKERFILE:-$PROJECT_DIR/Dockerfile}"
+# Dockerfile.prebuilt copia el binario desde deploy/prebuilt/, porque Backend-Rust/target esta
+# excluido del contexto de Docker (si no, cada build manda 1 GB). Se copia aqui, ya compilado,
+# para que el binario de la imagen sea exactamente el que se acaba de compilar.
+LOCAL_BIN="$PROJECT_DIR/Backend-Rust/target/release/jenny-api"
+if [[ "$DOCKERFILE" == *prebuilt* ]]; then
+  if [[ ! -f "$LOCAL_BIN" ]]; then
+    echo "No existe $LOCAL_BIN. Compila antes: cargo build --release --manifest-path Backend-Rust/Cargo.toml" >&2
+    exit 2
+  fi
+  mkdir -p "$PROJECT_DIR/deploy/prebuilt"
+  cp "$LOCAL_BIN" "$PROJECT_DIR/deploy/prebuilt/jenny-api"
+fi
 docker build -f "$DOCKERFILE" -t "$IMAGE:$TAG" -t "$IMAGE:latest" "$PROJECT_DIR"
 
 # Docker happily reuses a cached COPY layer for the binary, which silently ships the
 # PREVIOUS build. Verify the binary inside the image really is the one we just
 # compiled, otherwise the deploy would look green and serve old code.
-LOCAL_BIN="$PROJECT_DIR/Backend-Rust/target/release/jenny-api"
 if [[ -f "$LOCAL_BIN" ]]; then
   local_sum="$(sha256sum "$LOCAL_BIN" | cut -d' ' -f1)"
   image_sum="$(docker run --rm --entrypoint sha256sum "$IMAGE:$TAG" /app/jenny-api | cut -d' ' -f1)"
@@ -41,7 +52,7 @@ docker push "$IMAGE:$TAG"; docker push "$IMAGE:latest"
 ACR_USER="$(az acr credential show --name "$ACR_NAME" --query username --output tsv)"
 ACR_PASSWORD="$(az acr credential show --name "$ACR_NAME" --query 'passwords[0].value' --output tsv)"
 
-az webapp config appsettings set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --settings ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" AUTH_SIGNING_KEY="$AUTH_SIGNING_KEY" ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}" DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" UPLOADS_DIR="/app/uploads" WEBSITES_PORT=8080 DOCKER_REGISTRY_SERVER_URL="https://$ACR_NAME.azurecr.io" DOCKER_REGISTRY_SERVER_USERNAME="$ACR_USER" DOCKER_REGISTRY_SERVER_PASSWORD="$ACR_PASSWORD" --output none
+az webapp config appsettings set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --settings ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" AUTH_SIGNING_KEY="$AUTH_SIGNING_KEY" ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}" DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" UPLOADS_DIR="/app/uploads" WEBSITES_PORT=8080 PUBLIC_SCHEME=https FRONTEND_DIR="/app/Frontend/dist" DOCKER_REGISTRY_SERVER_URL="https://$ACR_NAME.azurecr.io" DOCKER_REGISTRY_SERVER_USERNAME="$ACR_USER" DOCKER_REGISTRY_SERVER_PASSWORD="$ACR_PASSWORD" --output none
 az webapp config set --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --linux-fx-version "DOCKER|$IMAGE:$TAG" --always-on true --generic-configurations '{"healthCheckPath":"/api/health"}' --output none
 az webapp restart --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --output none
 FQDN="$(az webapp show --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --query defaultHostName --output tsv)"

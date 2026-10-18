@@ -8,10 +8,11 @@ axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "uuid", "chrono"] }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "uuid", "chrono", "migrate"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "trace", "set-header"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hmac = "0.12"
@@ -19,4 +20,3 @@ sha2 = "0.10"
 base64 = "0.22"
 subtle = "2.6"
 pbkdf2 = "0.12"
-hex = "0.4"

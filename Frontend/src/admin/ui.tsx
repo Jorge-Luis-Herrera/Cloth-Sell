@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { STORE_CURRENCY, STORE_LOCALE } from '../api';
 
 type Toast = { id: number; message: string; kind: 'info' | 'success' | 'error' };
 type ToastApi = { push: (message: string, kind?: Toast['kind']) => void; success: (m: string) => void; error: (m: string) => void };
@@ -105,12 +106,17 @@ export function Confirm({
   );
 }
 
+/**
+ * Formato de dinero del panel. Antes era `es-MX`/MXN mientras que la tienda usaba `es-ES`/EUR:
+ * el mismo producto salia en pesos en el panel y en euros en la tienda.
+ * La fuente de verdad esta en `api.ts` (`STORE_CURRENCY`); aqui se reutiliza para que no puedan divergir.
+ */
 export const money = (value: number) =>
-  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number.isFinite(value) ? value : 0);
+  new Intl.NumberFormat(STORE_LOCALE, { style: 'currency', currency: STORE_CURRENCY }).format(Number.isFinite(value) ? value : 0);
 
 export const formatDate = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    : d.toLocaleString(STORE_LOCALE, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
