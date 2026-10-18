@@ -107,6 +107,17 @@ function Storefront() {
     return () => window.removeEventListener('keydown', onKey);
   }, [detail, foto]);
 
+  // Al confirmar el pedido, disparamos WhatsApp del tirón con un clic sobre un enlace real
+  // (en el móvil esto sí abre la app; `window.open` lo suelen bloquear). Si el navegador lo
+  // bloquea igual, el enlace grande del recibo queda ahí para mandarlo a mano.
+  useEffect(() => {
+    if (!recibo) return;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`;
+    const enlace = document.createElement('a');
+    enlace.href = url; enlace.target = '_blank'; enlace.rel = 'noreferrer';
+    document.body.appendChild(enlace); enlace.click(); enlace.remove();
+  }, [recibo]);
+
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
@@ -208,7 +219,7 @@ function Storefront() {
       <strong className="sheet-price">Total: {money(recibo.total)}</strong>
       <p className="sheet-hint">👤 {recibo.customerName} · 📞 {recibo.customerPhone}</p>
       <p className="recibo-address">{recibo.deliveryAddress}</p>
-      <Button appearance="primary" onClick={() => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`, '_blank')}>Enviar pedido por WhatsApp 💬</Button>
+      <a className="wa-btn" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensajeWhatsapp(recibo))}`} target="_blank" rel="noreferrer">Enviar pedido por WhatsApp 💬</a>
       <p className="sheet-hint">Se abre el chat de la tienda ({WHATSAPP_NUMBER}) con el detalle ya escrito: revísalo y mándalo.</p>
     </div>
   </section></div>}
