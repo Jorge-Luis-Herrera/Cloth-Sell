@@ -74,6 +74,8 @@ function Storefront() {
   // El carrito es un panel flotante: se abre al añadir una prenda, se cierra con la cruz
   // (por si no quieres pedir) y se vuelve a abrir con el botón de la bolsa.
   const [cartOpen, setCartOpen] = useState(false);
+  // Si el recorte del hero no esta en /public, el marquee sigue viendose solo.
+  const [heroFoto, setHeroFoto] = useState(true);
   // Ficha de producto: abrir la imagen del catalogo muestra una hoja flotante con la foto y
   // los detalles delante; dentro de la hoja, tocar la foto abre la imagen completa en pantalla.
   const [detail, setDetail] = useState<Product | null>(null), [foto, setFoto] = useState<string | null>(null);
@@ -235,7 +237,30 @@ function Storefront() {
       dispatchToast(<Toast><ToastTitle>{mensaje}</ToastTitle></Toast>, { intent: 'error' });
     }
   };
-  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero"><div><p className="eyebrow">NUEVA TEMPORADA / 2026</p><h1>Viste tu<br /><em>propio ritmo.</em></h1><p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p><Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button></div><div className="hero-art"><div className="hero-shape">J</div><span>ESSENTIALS<br /><small>JENNY STUDIO</small></span></div></section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
+  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero">
+            <h1 className="sr-only">Viste tu propio estilo</h1>
+            <div className="hero-stage">
+              <div className="hero-marquee" aria-hidden="true">
+                {[1, 2, 3].map(row => (
+                  <div key={row} className={`marquee-row marquee-row-${row}`}>
+                    <div className="marquee-track">
+                      {[0, 1].map(copia => (
+                        <div className="marquee-group" key={copia}>
+                          {Array.from({ length: 4 }, (_, i) => <span key={i}>Viste tu propio estilo<span className="marquee-dot">·</span></span>)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout.png" alt="Jenny con un top azul y leggings negros" width={432} height={577} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
+            </div>
+            <div className="hero-content">
+              <p className="eyebrow">NUEVA TEMPORADA / 2026</p>
+              <p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p>
+              <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
+            </div>
+          </section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
           </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0];
