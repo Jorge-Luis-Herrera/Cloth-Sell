@@ -317,7 +317,7 @@
   .hero-marquee{position:absolute;top:61%;left:50%;transform:translate(-50%,-50%);height:auto;width:100vw;-webkit-mask-image:none;mask-image:none}
   .marquee-row-2,.marquee-row-3{display:none}
   .marquee-group span{font-size:clamp(36px,10vw,68px)}
-  .hero-person{position:relative;left:auto;bottom:auto;transform:none;height:auto;width:min(100%,430px);margin:0 0 0 calc(-6vw - 18%);filter:drop-shadow(0 8px 12px rgba(43,41,39,.07))}
+  .hero-person{position:relative;left:auto;bottom:auto;transform:none;height:auto;width:min(100%,430px);margin:0 0 0 calc(-6vw - 8%);filter:drop-shadow(0 8px 12px rgba(43,41,39,.07))}
   .hero-content{width:100%;max-width:560px;margin-top:20px;text-align:center}
   .hero-content .hero-copy{margin-inline:auto;max-width:440px}
 }
