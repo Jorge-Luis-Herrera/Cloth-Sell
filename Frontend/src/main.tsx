@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Button, Field, Input, Select, Spinner, Tab, TabList, Textarea, Toaster, useId, useToastController, Toast, ToastTitle } from '@fluentui/react-components';
 import { STORE_CURRENCY, STORE_LOCALE, api, CartLine, Order, Product, Variant } from './api';
 import { AdminApp } from './admin/AdminApp';
+import { PremiumSection } from './PremiumSection';
 import './styles.css';
 
 const money = (value: number) => new Intl.NumberFormat(STORE_LOCALE, { style: 'currency', currency: STORE_CURRENCY }).format(value);
@@ -47,6 +48,7 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
         {product.images[0]
           ? <img src={product.images[0].url} alt={product.images[0].altText} loading="lazy" decoding="async" />
           : <span className="pcard-initial">{product.name.slice(0, 1)}</span>}
+        {product.isPremium && <span className="pcard-premium">Premium</span>}
         <span className="pcard-badge" data-off={!disponible}>{disponible ? 'Disponible' : 'Agotado'}</span>
         <span className="pcard-hint">Ver detalles</span>
       </button>
@@ -93,6 +95,9 @@ function Storefront() {
   const [guardados, setGuardados] = useState<DatosCliente | null>(readDatosCliente);
   const toasterId = useId('toaster'), { dispatchToast } = useToastController(toasterId);
   const sentinel = useRef<HTMLDivElement>(null);
+  // Serie premium: se pide aparte del catalogo para poder ordenarla por curaduria y pintarla
+  // antes de la rejilla normal. Si el backend no la tiene, la seccion simplemente no aparece.
+  const [premium, setPremium] = useState<Product[]>([]);
 
   /** Carga una pagina del catalogo. `append` la añade a lo ya visible («cargar más»), si no la
    *  reemplaza. El catalogo lo pagina y filtra el backend: antes se pedia una sola vez con un
@@ -117,6 +122,15 @@ function Storefront() {
 
   // Espera medio segundo tras escribir para no lanzar una peticion por cada tecla.
   useEffect(() => { const t = window.setTimeout(() => setBusqueda(query), 350); return () => window.clearTimeout(t); }, [query]);
+
+  // La serie premium es opcional: si falla, la portada sigue funcionando sin ella.
+  useEffect(() => {
+    let cancelado = false;
+    (api.premium() as Promise<{ items: Product[] }>)
+      .then(data => { if (!cancelado) setPremium(data?.items ?? []); })
+      .catch(() => { if (!cancelado) setPremium([]); });
+    return () => { cancelado = true; };
+  }, []);
 
   // Escape cierra por capas: primero la foto completa, luego la ficha.
   useEffect(() => {
@@ -237,7 +251,7 @@ function Storefront() {
       dispatchToast(<Toast><ToastTitle>{mensaje}</ToastTitle></Toast>, { intent: 'error' });
     }
   };
-  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a><a href="#historia">La colección</a></nav></header><main><section className="hero">
+  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a>{premium.length > 0 && <a href="#premium">Premium</a>}<a href="#historia">La colección</a></nav></header><main><section className="hero">
             <h1 className="sr-only">Viste tu propio estilo</h1>
             <div className="hero-stage">
               <div className="hero-marquee" aria-hidden="true">
@@ -260,10 +274,10 @@ function Storefront() {
               <p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
-          </section><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
+          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
-          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0];
+          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
   return <div className="sheet-veil" onClick={() => setDetail(null)}>
   <section className="sheet" role="dialog" aria-modal="true" aria-label={detail.name} onClick={e => e.stopPropagation()}>
     <button className="sheet-close" aria-label="Cerrar ficha de producto" onClick={() => setDetail(null)}>×</button>
@@ -278,6 +292,21 @@ function Storefront() {
       <div className="sheet-variants">{detail.variants.map(v => <Button key={v.id} size="small" appearance={sheetVariant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [detail.id]: v.id })}>{v.size} / {v.color}</Button>)}</div>
       <Button appearance="primary" disabled={!sheetVariant?.stockQuantity} onClick={() => sheetVariant && add(detail, sheetVariant)}>{sheetVariant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button>
       <p className="sheet-hint">{sheetVariant?.stockQuantity ? `Disponible · ${sheetVariant.stockQuantity} en inventario` : 'Agotado'} · Toca la foto para verla completa en pantalla.</p>
+      {ficha && (
+        <div className="sheet-premium">
+          <p className="sheet-premium-title">FICHA TÉCNICA · SERIE PREMIUM</p>
+          {ficha.tagline && <p className="sheet-premium-tagline">{ficha.tagline}</p>}
+          <dl>
+            {ficha.composition.length > 0 && <div><dt>Composición</dt><dd>{ficha.composition.map(parte => `${parte.percent} % ${parte.fiber}`).join(' · ')}</dd></div>}
+            {ficha.fabricWeightGsm ? <div><dt>Gramaje</dt><dd>{ficha.fabricWeightGsm} g/m²</dd></div> : null}
+            {ficha.origin && <div><dt>Origen</dt><dd>{ficha.origin}</dd></div>}
+            {ficha.care.length > 0 && <div><dt>Cuidados</dt><dd>{ficha.care.join(' · ')}</dd></div>}
+            {ficha.limitedUnits ? <div><dt>Tirada</dt><dd>{ficha.limitedUnits} unidades</dd></div> : null}
+          </dl>
+          {ficha.tests.length > 0 && <ul className="sheet-premium-tests">{ficha.tests.map((ensayo, i) => <li key={`${ensayo.name}-${i}`}><strong>{ensayo.name}</strong> {ensayo.result}{ensayo.method ? <small> ({ensayo.method})</small> : null}</li>)}</ul>}
+          {ficha.story && <p className="sheet-premium-story">{ficha.story}</p>}
+        </div>
+      )}
     </div>
   </section></div>; })()}
   {foto && <div className="lightbox" onClick={() => setFoto(null)}>

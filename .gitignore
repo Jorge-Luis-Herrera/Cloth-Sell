@@ -3,6 +3,10 @@
 Backend-Rust/target/
 Frontend/node_modules/
 Frontend/dist/
+# tsc -b deja estos artefactos al lado del codigo; no son fuente.
+Frontend/*.tsbuildinfo
+Frontend/vite.config.js
+Frontend/vite.config.d.ts
 .local-dev/
 deploy/prebuilt/
 Backend/uploads/

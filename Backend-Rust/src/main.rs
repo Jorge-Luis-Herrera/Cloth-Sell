@@ -93,7 +93,7 @@ fn security_header(name: header::HeaderName, value: &'static str) -> SetResponse
 
 #[derive(Serialize, FromRow)]
 struct ProductRow { id: String, slug: String, name: String, description: String, /// El precio se guarda en centimos; el decimal solo existe al serializar.
-    base_price_cents: i64, published: bool, created_at: String, updated_at: String }
+    base_price_cents: i64, published: bool, is_premium: bool, premium_rank: Option<i64>, created_at: String, updated_at: String }
 #[derive(Serialize, FromRow)]
 struct VariantRow { id: String, product_id: String, size: String, color: String, sku: Option<String>, price_override_cents: Option<i64>, stock_quantity: i64, is_active: bool }
 #[derive(Serialize, FromRow)]
@@ -105,8 +105,34 @@ struct VariantView { id: String, size: String, color: String, sku: Option<String
 #[serde(rename = "priceOverride")] price_override: Option<f64>, #[serde(rename = "stockQuantity")] stock_quantity: i64, #[serde(rename = "isActive")] is_active: bool }
 #[derive(Serialize)]
 struct ImageView { id: String, url: String, #[serde(rename = "contentType")] content_type: String, #[serde(rename = "sizeBytes")] size_bytes: i64, #[serde(rename = "sortOrder")] sort_order: i64, #[serde(rename = "altText")] alt_text: String }
+
+/// Fila tal cual sale de SQLite: los campos compuestos vienen como texto JSON y se parsean
+/// al construir la vista. Asi la base no necesita tablas hijas para tres listas cortas.
+#[derive(Serialize, FromRow)]
+struct PremiumRow { product_id: String, tagline: String, composition: String, fabric_weight_gsm: Option<i64>, origin: String, care: String, tests: String, story: String, limited_units: Option<i64> }
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct CompositionItem { fiber: String, percent: i64 }
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct TestItem { name: String, method: String, result: String }
+
 #[derive(Serialize)]
-struct ProductView { id: String, slug: String, name: String, description: String, #[serde(rename = "basePrice")] base_price: f64, published: bool, #[serde(rename = "createdAt")] created_at: String, #[serde(rename = "updatedAt")] updated_at: String, variants: Vec<VariantView>, images: Vec<ImageView> }
+struct PremiumView { tagline: String, composition: Vec<CompositionItem>, #[serde(rename = "fabricWeightGsm")] fabric_weight_gsm: Option<i64>, origin: String, care: Vec<String>, tests: Vec<TestItem>, story: String, #[serde(rename = "limitedUnits")] limited_units: Option<i64> }
+
+impl PremiumRow {
+    fn into_view(self) -> PremiumView {
+        PremiumView {
+            composition: serde_json::from_str(&self.composition).unwrap_or_default(),
+            care: serde_json::from_str(&self.care).unwrap_or_default(),
+            tests: serde_json::from_str(&self.tests).unwrap_or_default(),
+            tagline: self.tagline, fabric_weight_gsm: self.fabric_weight_gsm, origin: self.origin,
+            story: self.story, limited_units: self.limited_units,
+        }
+    }
+}
+#[derive(Serialize)]
+struct ProductView { id: String, slug: String, name: String, description: String, #[serde(rename = "basePrice")] base_price: f64, published: bool, #[serde(rename = "isPremium")] is_premium: bool, #[serde(rename = "premiumRank")] premium_rank: Option<i64>, premium: Option<PremiumView>, #[serde(rename = "createdAt")] created_at: String, #[serde(rename = "updatedAt")] updated_at: String, variants: Vec<VariantView>, images: Vec<ImageView> }
 
 async fn product_view(state: &AppState, product: ProductRow, base: &str) -> Result<ProductView, sqlx::Error> {
     product_views(state, vec![product], base).await?.into_iter().next().ok_or(sqlx::Error::RowNotFound)
@@ -141,11 +167,23 @@ async fn product_views(state: &AppState, products: Vec<ProductRow>, base: &str) 
             size_bytes: fila.size_bytes, sort_order: fila.sort_order, alt_text: fila.alt_text });
     }
 
+    // Fichas premium en una sola consulta mas (no una por producto).
+    let sql_premium = format!("SELECT product_id, tagline, composition, fabric_weight_gsm, origin, care, tests, story, limited_units FROM product_premium WHERE product_id IN ({lista})");
+    let mut consulta_premium = sqlx::query_as::<_, PremiumRow>(&sql_premium);
+    for id in &ids { consulta_premium = consulta_premium.bind(id); }
+    let mut fichas: HashMap<String, PremiumView> = HashMap::new();
+    for fila in consulta_premium.fetch_all(&state.db).await? {
+        let product_id = fila.product_id.clone();
+        fichas.insert(product_id, fila.into_view());
+    }
+
     Ok(products.into_iter().map(|product| {
         let id = product.id.clone();
         ProductView {
             id: id.clone(), slug: product.slug, name: product.name, description: product.description, base_price: from_cents(product.base_price_cents),
-            published: product.published, created_at: product.created_at, updated_at: product.updated_at,
+            published: product.published, is_premium: product.is_premium, premium_rank: product.premium_rank,
+            premium: fichas.remove(&id),
+            created_at: product.created_at, updated_at: product.updated_at,
             variants: variantes.remove(&id).unwrap_or_default(),
             images: imagenes.remove(&id).unwrap_or_default() }
     }).collect())
@@ -207,7 +245,7 @@ async fn login(State(state): State<AppState>, ConnectInfo(client): ConnectInfo<S
 }
 async fn logout() -> StatusCode { StatusCode::NO_CONTENT }
 
-#[derive(Deserialize)] struct ProductQuery { search: Option<String>, size: Option<String>, color: Option<String>, page: Option<i64>, page_size: Option<i64> }
+#[derive(Deserialize)] struct ProductQuery { search: Option<String>, size: Option<String>, color: Option<String>, page: Option<i64>, page_size: Option<i64>, tier: Option<String> }
 
 /// Filtros de catalogo expresados en SQL. Antes se leia el catalogo entero, se filtraba en Rust
 /// y se paginaba en memoria: el coste crecia con el numero de productos y pedir 1 producto era
@@ -221,13 +259,21 @@ async fn list_products(State(state): State<AppState>, headers: HeaderMap, Query(
     let buscar = query.search.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let talla = query.size.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let color = query.color.as_deref().map(str::trim).filter(|s| !s.is_empty());
-    let total: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM products p WHERE {CATALOGO_WHERE}"))
+    // `tier=premium|normal` separa la serie premium del resto sin duplicar la consulta.
+    // Sin parametro se devuelve todo, que es lo que ya hacia la tienda antes de existir la serie.
+    let filtro_premium = match query.tier.as_deref() {
+        Some("premium") => " AND p.is_premium = 1",
+        Some("normal") => " AND p.is_premium = 0",
+        _ => "",
+    };
+    let where_sql = format!("{}{}", CATALOGO_WHERE, filtro_premium);
+    let total: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM products p WHERE {where_sql}"))
         .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color)
         .fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let page = query.page.unwrap_or(1).clamp(1, 10_000);
     let page_size = query.page_size.unwrap_or(24).clamp(1, 60);
     let filas = sqlx::query_as::<_, ProductRow>(&format!(
-        "SELECT p.id, p.slug, p.name, p.description, p.base_price_cents, p.published, p.created_at, p.updated_at FROM products p WHERE {CATALOGO_WHERE} ORDER BY p.created_at DESC, p.id LIMIT ? OFFSET ?"))
+        "SELECT p.id, p.slug, p.name, p.description, p.base_price_cents, p.published, p.is_premium, p.premium_rank, p.created_at, p.updated_at FROM products p WHERE {where_sql} ORDER BY p.is_premium DESC, COALESCE(p.premium_rank, 999999), p.created_at DESC, p.id LIMIT ? OFFSET ?"))
         .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color)
         .bind(page_size).bind((page - 1) * page_size)
         .fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -235,7 +281,15 @@ async fn list_products(State(state): State<AppState>, headers: HeaderMap, Query(
     let items = product_views(&state, filas, &base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(serde_json::json!({"items": items, "total": total, "page": page, "pageSize": page_size, "hasMore": page * page_size < total})))
 }
-async fn get_product(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<impl IntoResponse, StatusCode> { let product = sqlx::query_as::<_, ProductRow>("SELECT id, slug, name, description, base_price_cents, published, created_at, updated_at FROM products WHERE id = ? AND published = 1").bind(id).fetch_optional(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?; let Some(product) = product else { return Ok(StatusCode::NOT_FOUND.into_response()) }; let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost")); Ok(Json(product_view(&state, product, &base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?).into_response()) }
+/// Serie premium: solo productos publicados y marcados, en el orden de curaduria.
+/// Va aparte de `/api/products` para que la portada pueda pedirla sin paginar ni filtrar.
+async fn list_premium(State(state): State<AppState>, headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
+    let filas = sqlx::query_as::<_, ProductRow>("SELECT id, slug, name, description, base_price_cents, published, is_premium, premium_rank, created_at, updated_at FROM products WHERE published = 1 AND is_premium = 1 ORDER BY COALESCE(premium_rank, 999999), created_at DESC").fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost"));
+    let items = product_views(&state, filas, &base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(serde_json::json!({"items": items})))
+}
+async fn get_product(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<impl IntoResponse, StatusCode> { let product = sqlx::query_as::<_, ProductRow>("SELECT id, slug, name, description, base_price_cents, published, is_premium, premium_rank, created_at, updated_at FROM products WHERE id = ? AND published = 1").bind(id).fetch_optional(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?; let Some(product) = product else { return Ok(StatusCode::NOT_FOUND.into_response()) }; let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost")); Ok(Json(product_view(&state, product, &base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?).into_response()) }
 
 #[derive(Deserialize)] struct OrderLine { #[serde(rename="variantId")] variant_id: String, quantity: i64 }
 #[derive(Deserialize)] struct CreateOrder { #[serde(rename="customerName")] customer_name: String, #[serde(rename="customerPhone")] customer_phone: String, #[serde(rename="deliveryAddress")] delivery_address: String, notes: Option<String>, items: Vec<OrderLine> }
@@ -247,7 +301,48 @@ async fn create_order(State(state): State<AppState>, Json(req): Json<CreateOrder
     sqlx::query("INSERT INTO orders (id,status,customer_name,customer_phone,delivery_address,notes,total_cents,created_at,updated_at) VALUES (?, 'Pending', ?, ?, ?, ?, ?, ?, ?)").bind(&order_id).bind(req.customer_name.trim()).bind(req.customer_phone.trim()).bind(req.delivery_address.trim()).bind(req.notes.as_deref().map(str::trim)).bind(total_cents).bind(&created).bind(&created).execute(&mut *tx).await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; let respuesta_items: Vec<serde_json::Value> = lines.iter().map(|(_, _, nombre, talla, color, precio, cantidad, total_linea)| serde_json::json!({"name": nombre, "size": talla, "color": color, "unitPrice": from_cents(*precio), "quantity": cantidad, "lineTotal": from_cents(*total_linea)})).collect(); for (product_id, variant_id, name, size, color, price, quantity, line_total) in lines { sqlx::query("INSERT INTO order_items (id,order_id,product_id,variant_id,product_name_snapshot,size_snapshot,color_snapshot,unit_price_cents,quantity,line_total_cents) VALUES (?,?,?,?,?,?,?,?,?,?)").bind(Uuid::new_v4().to_string()).bind(&order_id).bind(product_id).bind(variant_id).bind(name).bind(size).bind(color).bind(price).bind(quantity).bind(line_total).execute(&mut *tx).await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; } tx.commit().await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; Ok((StatusCode::CREATED, Json(serde_json::json!({"id": order_id, "status":"Pending", "customerName": req.customer_name.trim(), "customerPhone": req.customer_phone.trim(), "deliveryAddress": req.delivery_address.trim(), "notes": req.notes.as_deref().map(str::trim).filter(|n| !n.is_empty()), "total": from_cents(total_cents), "createdAt": created, "updatedAt": created, "items": respuesta_items}))))
 }
 
-#[derive(Deserialize)] struct ProductInput { name: String, description: Option<String>, slug: Option<String>, #[serde(rename="basePrice")] base_price: f64, published: bool }
+#[derive(Deserialize)] struct ProductInput { name: String, description: Option<String>, slug: Option<String>, #[serde(rename="basePrice")] base_price: f64, published: bool,
+    #[serde(rename="isPremium", default)] is_premium: bool,
+    #[serde(rename="premiumRank", default)] premium_rank: Option<i64>,
+    #[serde(default)] premium: Option<PremiumInput> }
+#[derive(Deserialize, Default)] struct PremiumInput { tagline: Option<String>, composition: Option<Vec<CompositionItem>>,
+    #[serde(rename="fabricWeightGsm")] fabric_weight_gsm: Option<i64>, origin: Option<String>, care: Option<Vec<String>>,
+    tests: Option<Vec<TestItem>>, story: Option<String>, #[serde(rename="limitedUnits")] limited_units: Option<i64> }
+
+/// Valida la ficha antes de tocar la base: una composicion que no suma 100 % o un gramaje
+/// negativo es un error de captura, no un dato raro que haya que guardar igual.
+fn validar_premium(p: &PremiumInput) -> Result<(), (StatusCode, Json<ErrorBody>)> {
+    if let Some(items) = &p.composition {
+        if items.iter().any(|i| i.fiber.trim().is_empty()) { return Err(bad("Cada fibra necesita un nombre.")); }
+        if items.iter().any(|i| i.percent < 0 || i.percent > 100) { return Err(bad("Cada fibra debe estar entre 0 y 100 %.")); }
+        let total: i64 = items.iter().map(|i| i.percent).sum();
+        if !items.is_empty() && total != 100 { return Err(bad("La composicion debe sumar 100 %.")); }
+    }
+    if let Some(gsm) = p.fabric_weight_gsm { if gsm <= 0 { return Err(bad("El gramaje debe ser mayor que 0.")); } }
+    if let Some(units) = p.limited_units { if units < 0 { return Err(bad("Las unidades limitadas no pueden ser negativas.")); } }
+    Ok(())
+}
+
+/// Guarda (o reemplaza) la ficha premium. Se llama dentro de la transaccion del producto.
+async fn guardar_premium(db: &mut sqlx::SqliteConnection, product_id: &str, p: &PremiumInput) -> Result<(), sqlx::Error> {
+    let composition = serde_json::to_string(&p.composition.clone().unwrap_or_default()).unwrap_or_else(|_| "[]".to_string());
+    let care = serde_json::to_string(&p.care.clone().unwrap_or_default()).unwrap_or_else(|_| "[]".to_string());
+    let tests = serde_json::to_string(&p.tests.clone().unwrap_or_default()).unwrap_or_else(|_| "[]".to_string());
+    sqlx::query("INSERT INTO product_premium (product_id, tagline, composition, fabric_weight_gsm, origin, care, tests, story, limited_units, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(product_id) DO UPDATE SET tagline=excluded.tagline, composition=excluded.composition, fabric_weight_gsm=excluded.fabric_weight_gsm, origin=excluded.origin, care=excluded.care, tests=excluded.tests, story=excluded.story, limited_units=excluded.limited_units, updated_at=excluded.updated_at")
+        .bind(product_id)
+        .bind(p.tagline.as_deref().unwrap_or("").trim())
+        .bind(composition)
+        .bind(p.fabric_weight_gsm)
+        .bind(p.origin.as_deref().unwrap_or("").trim())
+        .bind(care)
+        .bind(tests)
+        .bind(p.story.as_deref().unwrap_or("").trim())
+        .bind(p.limited_units)
+        .bind(now())
+        .execute(db)
+        .await?;
+    Ok(())
+}
 #[derive(Deserialize)] struct VariantInput { size: String, color: String, sku: Option<String>, #[serde(rename="priceOverride")] price_override: Option<f64>, #[serde(rename="stockQuantity")] stock_quantity: i64, #[serde(rename="isActive")] is_active: bool }
 /// Convierte un nombre en un slug utilizable en una URL: sin tildes, sin simbolos y sin guiones
 /// repetidos. Antes solo hacia `to_lowercase` + `join("-")`, asi que "Bañador «Niño» Ñandú" se
@@ -328,9 +423,9 @@ fn multipart_error(err: &axum::extract::multipart::MultipartError) -> (StatusCod
     }
     bad("No se pudo leer la subida. Comprueba que sea un fichero JPG, PNG o WebP.")
 }
-async fn admin_products(State(state): State<AppState>, headers: HeaderMap) -> Result<impl IntoResponse, StatusCode> { if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } let products = sqlx::query_as::<_, ProductRow>("SELECT id, slug, name, description, base_price_cents, published, created_at, updated_at FROM products ORDER BY created_at DESC").fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?; let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost")); let mut result = Vec::new(); for p in products { result.push(product_view(&state,p,&base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?); } Ok(Json(result).into_response()) }
-async fn create_product(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<ProductInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } if req.name.trim().is_empty() || req.base_price < 0.0 { return Err(bad("Name and a non-negative price are required.")); } let id=Uuid::new_v4().to_string(); let timestamp=now(); let slug=req.slug.as_deref().map(slugify).filter(|s|!s.is_empty()).unwrap_or_else(||slugify(&req.name)); sqlx::query("INSERT INTO products (id,slug,name,description,base_price_cents,published,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(&id).bind(&slug).bind(req.name.trim()).bind(req.description.unwrap_or_default().trim()).bind(to_cents(req.base_price)).bind(req.published).bind(&timestamp).bind(&timestamp).execute(&state.db).await.map_err(|e| if is_unique(&e) { conflict(format!("Ya existe un producto con el nombre \"{}\" (identificador \"{}\"). Usa otro nombre o indica un identificador distinto.", req.name.trim(), slug)) } else { tracing::error!(error = %e, "no se pudo crear el producto"); bad("Could not create product") })?; Ok((StatusCode::CREATED, Json(serde_json::json!({"id":id,"slug":slug,"name":req.name,"basePrice":from_cents(to_cents(req.base_price)),"published":req.published,"createdAt":timestamp,"updatedAt":timestamp,"variants":[],"images":[]}))).into_response()) }
-async fn update_product(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>, Json(req): Json<ProductInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } let result=sqlx::query("UPDATE products SET slug=COALESCE(NULLIF(?,''),slug),name=?,description=?,base_price_cents=?,published=?,updated_at=? WHERE id=?").bind(req.slug.as_deref().map(slugify).unwrap_or_default()).bind(req.name.trim()).bind(req.description.unwrap_or_default().trim()).bind(to_cents(req.base_price)).bind(req.published).bind(now()).bind(&id).execute(&state.db).await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Could not update product") })?; if result.rows_affected()==0 { return Ok(StatusCode::NOT_FOUND.into_response()) } Ok(StatusCode::NO_CONTENT.into_response()) }
+async fn admin_products(State(state): State<AppState>, headers: HeaderMap) -> Result<impl IntoResponse, StatusCode> { if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } let products = sqlx::query_as::<_, ProductRow>("SELECT id, slug, name, description, base_price_cents, published, is_premium, premium_rank, created_at, updated_at FROM products ORDER BY created_at DESC").fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?; let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost")); let mut result = Vec::new(); for p in products { result.push(product_view(&state,p,&base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?); } Ok(Json(result).into_response()) }
+async fn create_product(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<ProductInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } if req.name.trim().is_empty() || req.base_price < 0.0 { return Err(bad("Name and a non-negative price are required.")); } let id=Uuid::new_v4().to_string(); let timestamp=now(); if let Some(p) = &req.premium { validar_premium(p)?; } let slug=req.slug.as_deref().map(slugify).filter(|s|!s.is_empty()).unwrap_or_else(||slugify(&req.name)); let mut tx = state.db.begin().await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; sqlx::query("INSERT INTO products (id,slug,name,description,base_price_cents,published,is_premium,premium_rank,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)").bind(&id).bind(&slug).bind(req.name.trim()).bind(req.description.unwrap_or_default().trim()).bind(to_cents(req.base_price)).bind(req.published).bind(req.is_premium).bind(req.premium_rank).bind(&timestamp).bind(&timestamp).execute(&mut *tx).await.map_err(|e| if is_unique(&e) { conflict(format!("Ya existe un producto con el nombre \"{}\" (identificador \"{}\"). Usa otro nombre o indica un identificador distinto.", req.name.trim(), slug)) } else { tracing::error!(error = %e, "no se pudo crear el producto"); bad("Could not create product") })?; if let Some(p) = &req.premium { guardar_premium(&mut *tx, &id, p).await.map_err(|e| { tracing::error!(error = %e, "no se pudo guardar la ficha premium"); bad("Could not save the premium sheet") })?; } tx.commit().await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; Ok((StatusCode::CREATED, Json(serde_json::json!({"id":id,"slug":slug,"name":req.name,"basePrice":from_cents(to_cents(req.base_price)),"published":req.published,"isPremium":req.is_premium,"premiumRank":req.premium_rank,"createdAt":timestamp,"updatedAt":timestamp,"variants":[],"images":[]}))).into_response()) }
+async fn update_product(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>, Json(req): Json<ProductInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } if req.name.trim().is_empty() || req.base_price < 0.0 { return Err(bad("Name and a non-negative price are required.")); } if let Some(p) = &req.premium { validar_premium(p)?; } let mut tx = state.db.begin().await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; let result=sqlx::query("UPDATE products SET slug=COALESCE(NULLIF(?,''),slug),name=?,description=?,base_price_cents=?,published=?,is_premium=?,premium_rank=?,updated_at=? WHERE id=?").bind(req.slug.as_deref().map(slugify).unwrap_or_default()).bind(req.name.trim()).bind(req.description.unwrap_or_default().trim()).bind(to_cents(req.base_price)).bind(req.published).bind(req.is_premium).bind(req.premium_rank).bind(now()).bind(&id).execute(&mut *tx).await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Could not update product") })?; if result.rows_affected()==0 { return Ok(StatusCode::NOT_FOUND.into_response()) } if let Some(p) = &req.premium { guardar_premium(&mut *tx, &id, p).await.map_err(|e| { tracing::error!(error = %e, "no se pudo guardar la ficha premium"); bad("Could not save the premium sheet") })?; } tx.commit().await.map_err(|e| { tracing::error!(error = %e, "operacion fallida"); bad("Database error") })?; Ok(StatusCode::NO_CONTENT.into_response()) }
 async fn delete_product(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<StatusCode, StatusCode> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED) } let result=sqlx::query("DELETE FROM products WHERE id=?").bind(id).execute(&state.db).await.map_err(|_|StatusCode::INTERNAL_SERVER_ERROR)?; Ok(if result.rows_affected()==0 {StatusCode::NOT_FOUND} else {StatusCode::NO_CONTENT}) }
 async fn save_variant(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>, Json(req): Json<VariantInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> { if !is_admin(&state,&headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()) } // El panel puede quedar apuntando a un producto que ya no existe (se borro en otra sesion o
     // la lista esta desactualizada): responder 404 con mensaje claro y no un 400 criptico.
@@ -448,4 +543,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> { tracing_subscriber::
             .unwrap_or_else(|| PathBuf::from("Frontend/dist"))
     });
     let cors=if allowed_origins().is_empty() { CorsLayer::new() } else { CorsLayer::new().allow_origin(allowed_origins()).allow_methods(Any).allow_headers(Any) };
-    let app=Router::new().route("/api/health",get(health)).route("/api/auth/login",post(login)).route("/api/auth/logout",post(logout)).route("/api/products",get(list_products)).route("/api/products/:id",get(get_product)).route("/api/orders",post(create_order)).route("/api/admin/products",get(admin_products).post(create_product)).route("/api/admin/products/:id",put(update_product).delete(delete_product)).route("/api/admin/products/:id/variants",post(save_variant)).route("/api/admin/products/:id/variants/:variant_id",put(update_variant).delete(delete_variant)).route("/api/admin/products/:id/images",post(upload_image).patch(reorder_images)).route("/api/admin/products/:id/images/:image_id",delete(delete_image).patch(update_image)).route("/api/admin/orders",get(admin_orders)).route("/api/admin/orders/:id",delete(delete_order)).route("/api/admin/orders/:id/status",patch(update_status)).nest_service("/uploads",ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"))).service(ServeDir::new(&uploads))).nest_service("/assets",ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"))).service(ServeDir::new(frontend_dir.join("assets")))).fallback_service(ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"))).service(ServeDir::new(&frontend_dir))).layer(DefaultBodyLimit::max(6*1024*1024)).layer(cors).layer(security_header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")).layer(security_header(header::X_FRAME_OPTIONS, "SAMEORIGIN")).layer(security_header(header::REFERRER_POLICY, "strict-origin-when-cross-origin")).layer(security_header(header::STRICT_TRANSPORT_SECURITY, "max-age=31536000; includeSubDomains")).layer(TraceLayer::new_for_http()).with_state(state); let port=env_or("PORT","8080").parse::<u16>()?; let addr=SocketAddr::from(([0,0,0,0],port)); tracing::info!(%addr,"Jenny Rust API listening"); axum::serve(tokio::net::TcpListener::bind(addr).await?,app.into_make_service_with_connect_info::<SocketAddr>()).await?; Ok(()) }
+    let app=Router::new().route("/api/health",get(health)).route("/api/auth/login",post(login)).route("/api/auth/logout",post(logout)).route("/api/products",get(list_products)).route("/api/premium",get(list_premium)).route("/api/products/:id",get(get_product)).route("/api/orders",post(create_order)).route("/api/admin/products",get(admin_products).post(create_product)).route("/api/admin/products/:id",put(update_product).delete(delete_product)).route("/api/admin/products/:id/variants",post(save_variant)).route("/api/admin/products/:id/variants/:variant_id",put(update_variant).delete(delete_variant)).route("/api/admin/products/:id/images",post(upload_image).patch(reorder_images)).route("/api/admin/products/:id/images/:image_id",delete(delete_image).patch(update_image)).route("/api/admin/orders",get(admin_orders)).route("/api/admin/orders/:id",delete(delete_order)).route("/api/admin/orders/:id/status",patch(update_status)).nest_service("/uploads",ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"))).service(ServeDir::new(&uploads))).nest_service("/assets",ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"))).service(ServeDir::new(frontend_dir.join("assets")))).fallback_service(ServiceBuilder::new().layer(SetResponseHeaderLayer::overriding(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"))).service(ServeDir::new(&frontend_dir))).layer(DefaultBodyLimit::max(6*1024*1024)).layer(cors).layer(security_header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")).layer(security_header(header::X_FRAME_OPTIONS, "SAMEORIGIN")).layer(security_header(header::REFERRER_POLICY, "strict-origin-when-cross-origin")).layer(security_header(header::STRICT_TRANSPORT_SECURITY, "max-age=31536000; includeSubDomains")).layer(TraceLayer::new_for_http()).with_state(state); let port=env_or("PORT","8080").parse::<u16>()?; let addr=SocketAddr::from(([0,0,0,0],port)); tracing::info!(%addr,"Jenny Rust API listening"); axum::serve(tokio::net::TcpListener::bind(addr).await?,app.into_make_service_with_connect_info::<SocketAddr>()).await?; Ok(()) }

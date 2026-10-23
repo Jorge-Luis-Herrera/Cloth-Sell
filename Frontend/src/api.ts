@@ -1,12 +1,26 @@
 export type Variant = { id: string; size: string; color: string; sku?: string; price: number; priceOverride?: number | null; stockQuantity: number; isActive: boolean };
 export type ProductImage = { id: string; url: string; altText: string };
-export type Product = { id: string; slug: string; name: string; description: string; basePrice: number; published: boolean; createdAt: string; updatedAt: string; variants: Variant[]; images: ProductImage[] };
+
+/** Una fibra de la composicion, con su porcentaje. Suman 100. */
+export type PremiumComposition = { fiber: string; percent: number };
+/** Un ensayo de laboratorio tal como lo declara el fabricante. `method` es la norma
+ *  (por ejemplo "UNE-EN ISO 13934-1") y `result` el valor medido. */
+export type PremiumTest = { name: string; method: string; result: string };
+/** Ficha tecnica de una prenda de la serie premium. */
+export type PremiumSpec = {
+  tagline: string; composition: PremiumComposition[]; fabricWeightGsm: number | null; origin: string;
+  care: string[]; tests: PremiumTest[]; story: string; limitedUnits: number | null;
+};
+/** Al escribir solo hace falta mandar lo que se rellena; el backend rellena el resto. */
+export type PremiumInput = Partial<PremiumSpec>;
+
+export type Product = { id: string; slug: string; name: string; description: string; basePrice: number; published: boolean; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumSpec | null; createdAt: string; updatedAt: string; variants: Variant[]; images: ProductImage[] };
 export type CartLine = { variant: Variant; product: Product; quantity: number };
 
 export type OrderItem = { name: string; size: string; color: string; unitPrice: number; quantity: number; lineTotal: number };
 export type Order = { id: string; status: string; customerName: string; customerPhone: string; deliveryAddress: string; notes: string | null; total: number; createdAt: string; updatedAt: string; items: OrderItem[] };
 
-export type ProductInput = { name: string; description?: string | null; basePrice: number; published: boolean };
+export type ProductInput = { name: string; description?: string | null; basePrice: number; published: boolean; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumInput | null };
 export type VariantInput = { size: string; color: string; sku?: string | null; priceOverride?: number | null; stockQuantity: number; isActive: boolean };
 
 /** Estados que acepta el backend. El orden es el del ciclo de vida del pedido. */
@@ -134,6 +148,9 @@ export const api = {
   /** Filtros del catalogo publico. El backend pagina y filtra en SQL: filtrar en el navegador
    *  solo aplicaria a los productos de la pagina actual, no al catalogo entero. */
   products: (query: CatalogQuery = {}) => json(catalogQuery(query)),
+  /** Serie premium, ya ordenada por curaduria. Va aparte del catalogo porque la portada la
+   *  pinta antes y sin paginar. */
+  premium: () => json('/api/premium'),
   login: (password: string) => json('/api/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
   order: (data: unknown) => json('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
 

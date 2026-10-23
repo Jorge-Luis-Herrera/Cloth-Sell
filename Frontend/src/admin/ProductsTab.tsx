@@ -26,7 +26,7 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
 
   const togglePublished = async (p: Product) => {
     try {
-      await api.updateProduct(token, p.id, { name: p.name, description: p.description, basePrice: p.basePrice, published: !p.published });
+      await api.updateProduct(token, p.id, { name: p.name, description: p.description, basePrice: p.basePrice, published: !p.published, isPremium: Boolean(p.isPremium), premiumRank: p.premiumRank ?? null, premium: p.premium ?? null });
       await onChanged();
       toast.success(p.published ? `"${p.name}" se ocultó de la tienda.` : `"${p.name}" ya está visible en la tienda.`);
     } catch (e) {
@@ -121,7 +121,7 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
               </div>
 
               <div className="adm-card-body">
-                <h3>{p.name}</h3>
+                <h3>{p.name}{p.isPremium && <span className="adm-premium-tag">Premium</span>}</h3>
                 {p.description && <p>{p.description}</p>}
 
                 {colorsOf(p).length > 0 && (

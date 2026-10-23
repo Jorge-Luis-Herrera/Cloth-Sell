@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type Product, type ProductImage } from '../api';
+import { api, type PremiumInput, type Product, type ProductImage, type ProductInput } from '../api';
 import { Confirm, useToast } from './ui';
 import { VariantsEditor } from './VariantsEditor';
 
 const MAX_UPLOAD = 5 * 1024 * 1024;
 const MAX_PHOTOS = 30;
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
+
+/** Fila de composicion en edicion: el porcentaje se guarda como texto para no pelear con
+ *  el input mientras se escribe ("9" antes de "92"). Se convierte al guardar. */
+type FibraEdit = { fiber: string; percent: string };
+type EnsayoEdit = { name: string; method: string; result: string };
 
 /** Foto elegida antes de que el producto exista: el endpoint de subida necesita un id de
  *  producto, asi que en el alta se envia en cuanto createProduct devuelve el id. */
@@ -31,6 +36,19 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [editingAlt, setEditingAlt] = useState<{ id: string; value: string } | null>(null);
 
+  // Ficha premium: solo se envia si la casilla esta marcada. Los campos vacios se guardan
+  // vacios y la tienda simplemente no pinta esa fila (no se rellenan con datos inventados).
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumRank, setPremiumRank] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [gsm, setGsm] = useState('');
+  const [limitedUnits, setLimitedUnits] = useState('');
+  const [story, setStory] = useState('');
+  const [composition, setComposition] = useState<FibraEdit[]>([]);
+  const [care, setCare] = useState('');
+  const [tests, setTests] = useState<EnsayoEdit[]>([]);
+
   const uploading = progress !== null;
   const busy = saving || uploading;
   const photos = product?.images ?? [];
@@ -42,6 +60,17 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
     setDescription(product.description ?? '');
     setBasePrice(String(product.basePrice ?? ''));
     setPublished(Boolean(product.published));
+    setIsPremium(Boolean(product.isPremium));
+    setPremiumRank(product.premiumRank != null ? String(product.premiumRank) : '');
+    const ficha = product.premium;
+    setTagline(ficha?.tagline ?? '');
+    setOrigin(ficha?.origin ?? '');
+    setGsm(ficha?.fabricWeightGsm != null ? String(ficha.fabricWeightGsm) : '');
+    setLimitedUnits(ficha?.limitedUnits != null ? String(ficha.limitedUnits) : '');
+    setStory(ficha?.story ?? '');
+    setComposition((ficha?.composition ?? []).map((fibra) => ({ fiber: fibra.fiber, percent: String(fibra.percent) })));
+    setCare((ficha?.care ?? []).join('\n'));
+    setTests((ficha?.tests ?? []).map((ensayo) => ({ ...ensayo })));
   }, [product]);
 
   // Libera los object URL de las vistas previas para no filtrar memoria.
@@ -154,9 +183,37 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
     if (!name.trim()) return toast.error('El nombre es obligatorio.');
     if (!Number.isFinite(price) || price <= 0) return toast.error('Escribe un precio mayor que cero.');
 
+    // La ficha se valida aqui para dar un mensaje concreto; el backend repite la validacion.
+    const rank = premiumRank.trim() ? Number(premiumRank) : null;
+    if (rank !== null && (!Number.isInteger(rank) || rank < 0)) return toast.error('El orden en la serie debe ser un número entero.');
+
+    let premium: PremiumInput | null = null;
+    if (isPremium) {
+      const fibras = composition
+        .map((fibra) => ({ fiber: fibra.fiber.trim(), percent: Number(fibra.percent) }))
+        .filter((fibra) => fibra.fiber);
+      if (fibras.some((fibra) => !Number.isFinite(fibra.percent) || fibra.percent < 0 || fibra.percent > 100)) return toast.error('Cada fibra debe estar entre 0 y 100 %.');
+      const total = fibras.reduce((suma, fibra) => suma + fibra.percent, 0);
+      if (fibras.length > 0 && total !== 100) return toast.error(`La composición debe sumar 100 % (ahora suma ${total} %).`);
+      const gramaje = gsm.trim() ? Number(gsm) : null;
+      if (gramaje !== null && (!Number.isFinite(gramaje) || gramaje <= 0)) return toast.error('El gramaje debe ser mayor que cero.');
+      const tirada = limitedUnits.trim() ? Number(limitedUnits) : null;
+      if (tirada !== null && (!Number.isInteger(tirada) || tirada < 0)) return toast.error('Las unidades de la tirada no pueden ser negativas.');
+      premium = {
+        tagline: tagline.trim(),
+        composition: fibras,
+        fabricWeightGsm: gramaje,
+        origin: origin.trim(),
+        care: care.split('\n').map((linea) => linea.trim()).filter(Boolean),
+        tests: tests.map((ensayo) => ({ name: ensayo.name.trim(), method: ensayo.method.trim(), result: ensayo.result.trim() })).filter((ensayo) => ensayo.name),
+        story: story.trim(),
+        limitedUnits: tirada,
+      };
+    }
+
     setSaving(true);
     try {
-      const payload = { name: name.trim(), description: description.trim(), basePrice: price, published };
+      const payload: ProductInput = { name: name.trim(), description: description.trim(), basePrice: price, published, isPremium, premiumRank: rank, premium };
       if (product) {
         await api.updateProduct(token, product.id, payload);
         // En edicion la foto pendiente se sube ahora que ya sabemos el id.
@@ -180,6 +237,7 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
   const closeSafely = () => { if (!busy) onClose(); };
 
   const progressoTotal = progress ? (progress.index * 100 + (progress.percent ?? 0)) / progress.total : 0;
+  const totalFibras = composition.reduce((suma, fibra) => suma + (Number(fibra.percent) || 0), 0);
 
   return (
     <div className="adm-modal-wrap" onClick={closeSafely} role="presentation">
@@ -218,6 +276,120 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
           <div className="adm-field">
             <label htmlFor="p-desc">Descripcion</label>
             <textarea id="p-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Algodon organico, corte holgado, disponible en tres colores..." disabled={busy} />
+          </div>
+
+          <div className="adm-premium" data-on={isPremium || undefined}>
+            <label className="adm-premium-toggle">
+              <input type="checkbox" checked={isPremium} onChange={(e) => setIsPremium(e.target.checked)} disabled={busy} />
+              <span>
+                <b>Producto premium</b>
+                <span className="adm-hint">Sale en la serie premium, antes del catálogo, con su ficha técnica.</span>
+              </span>
+            </label>
+
+            {isPremium && (
+              <div className="adm-premium-body">
+                <div className="adm-row2">
+                  <div className="adm-field">
+                    <label htmlFor="p-rank">Orden en la serie</label>
+                    <input id="p-rank" type="number" min="0" step="1" value={premiumRank} onChange={(e) => setPremiumRank(e.target.value)} placeholder="1" disabled={busy} />
+                    <span className="adm-hint">Menor número, antes sale. Vacío = al final.</span>
+                  </div>
+                  <div className="adm-field">
+                    <label htmlFor="p-tagline">Frase de la ficha</label>
+                    <input id="p-tagline" type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Lino europeo tejido en Portugal" maxLength={120} disabled={busy} />
+                  </div>
+                </div>
+
+                <div className="adm-field">
+                  <label>Composición <span className="adm-hint">· {totalFibras} %</span></label>
+                  {composition.map((fibra, index) => (
+                    <div className="adm-prow" key={index}>
+                      <input
+                        value={fibra.fiber}
+                        onChange={(e) => setComposition(composition.map((actual, i) => (i === index ? { ...actual, fiber: e.target.value } : actual)))}
+                        placeholder="Algodón"
+                        aria-label={`Fibra ${index + 1}`}
+                        disabled={busy}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={fibra.percent}
+                        onChange={(e) => setComposition(composition.map((actual, i) => (i === index ? { ...actual, percent: e.target.value } : actual)))}
+                        placeholder="%"
+                        aria-label={`Porcentaje de la fibra ${index + 1}`}
+                        disabled={busy}
+                      />
+                      <button type="button" className="adm-prow-x" onClick={() => setComposition(composition.filter((_, i) => i !== index))} aria-label="Quitar fibra" disabled={busy}>&times;</button>
+                    </div>
+                  ))}
+                  <button type="button" className="adm-btn adm-btn-sm" onClick={() => setComposition([...composition, { fiber: '', percent: '' }])} disabled={busy}>Añadir fibra</button>
+                  <span className="adm-hint">Debe sumar 100 %. Se pinta como barra de composición.</span>
+                </div>
+
+                <div className="adm-row2">
+                  <div className="adm-field">
+                    <label htmlFor="p-gsm">Gramaje (g/m²)</label>
+                    <input id="p-gsm" type="number" min="1" step="1" value={gsm} onChange={(e) => setGsm(e.target.value)} placeholder="240" disabled={busy} />
+                  </div>
+                  <div className="adm-field">
+                    <label htmlFor="p-units">Tirada (unidades)</label>
+                    <input id="p-units" type="number" min="0" step="1" value={limitedUnits} onChange={(e) => setLimitedUnits(e.target.value)} placeholder="40" disabled={busy} />
+                  </div>
+                </div>
+
+                <div className="adm-field">
+                  <label htmlFor="p-origin">Origen</label>
+                  <input id="p-origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Tejido en Portugal · confeccionado en España" maxLength={160} disabled={busy} />
+                </div>
+
+                <div className="adm-field">
+                  <label htmlFor="p-care">Cuidados</label>
+                  <textarea id="p-care" value={care} onChange={(e) => setCare(e.target.value)} placeholder={'Lavar a 30 °C\nNo usar secadora'} rows={3} disabled={busy} />
+                  <span className="adm-hint">Uno por línea.</span>
+                </div>
+
+                <div className="adm-field">
+                  <label>Ensayos</label>
+                  {tests.map((ensayo, index) => (
+                    <div className="adm-prow adm-prow-3" key={index}>
+                      <input
+                        value={ensayo.name}
+                        onChange={(e) => setTests(tests.map((actual, i) => (i === index ? { ...actual, name: e.target.value } : actual)))}
+                        placeholder="Solidez del color"
+                        aria-label={`Ensayo ${index + 1}`}
+                        disabled={busy}
+                      />
+                      <input
+                        value={ensayo.method}
+                        onChange={(e) => setTests(tests.map((actual, i) => (i === index ? { ...actual, method: e.target.value } : actual)))}
+                        placeholder="UNE-EN ISO 105-C06"
+                        aria-label={`Norma del ensayo ${index + 1}`}
+                        disabled={busy}
+                      />
+                      <input
+                        value={ensayo.result}
+                        onChange={(e) => setTests(tests.map((actual, i) => (i === index ? { ...actual, result: e.target.value } : actual)))}
+                        placeholder="4-5"
+                        aria-label={`Resultado del ensayo ${index + 1}`}
+                        disabled={busy}
+                      />
+                      <button type="button" className="adm-prow-x" onClick={() => setTests(tests.filter((_, i) => i !== index))} aria-label="Quitar ensayo" disabled={busy}>&times;</button>
+                    </div>
+                  ))}
+                  <button type="button" className="adm-btn adm-btn-sm" onClick={() => setTests([...tests, { name: '', method: '', result: '' }])} disabled={busy}>Añadir ensayo</button>
+                  <span className="adm-hint">Solo con el informe del proveedor: nombre, norma y resultado.</span>
+                </div>
+
+                <div className="adm-field">
+                  <label htmlFor="p-story">Historia de la prenda</label>
+                  <textarea id="p-story" value={story} onChange={(e) => setStory(e.target.value)} placeholder="Por qué esta prenda está en la serie premium..." disabled={busy} />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="adm-field">
