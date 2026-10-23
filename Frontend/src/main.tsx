@@ -253,7 +253,7 @@ function Storefront() {
                   </div>
                 ))}
               </div>
-              {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout.png" alt="Jenny con un top azul y leggings negros" width={432} height={577} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
+              {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout.webp" alt="Jenny con un top azul y leggings negros" width={432} height={577} loading="eager" decoding="async" fetchPriority="high" draggable={false} onError={() => setHeroFoto(false)} />}
             </div>
             <div className="hero-content">
               <p className="eyebrow">NUEVA TEMPORADA / 2026</p>
