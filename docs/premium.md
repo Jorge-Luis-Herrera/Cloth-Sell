@@ -27,10 +27,16 @@ Quitar la marca **no borra la ficha**: se conserva por si se vuelve a activar.
 
 - Seccion `#premium` entre el hero y `#catalogo`; solo aparece si hay prendas premium publicadas.
 - Enlace **Premium** en la barra superior, solo cuando la seccion existe.
-- Cada prenda se presenta como una ficha: foto, numero de serie, frase, barra de composicion,
-  tabla de datos, ensayos, precio y "Ver ficha" (abre la hoja de producto de siempre).
-- La hoja de producto muestra la misma ficha tecnica debajo del boton de compra.
+- Se presenta como un **carrusel editorial**: una prenda destacada a lo grande, con la foto a sangre
+  y el texto encima (pregunta, nombre en serif con mucho tracking y frase de la ficha). Debajo, una
+  tira de miniaturas que se **desliza de lado** (swipe en el movil, rueda/arrastre en el escritorio)
+  y unas flechas en escritorio. Al tocar una miniatura cambia la prenda destacada.
+- Al pie de la foto, en mono: composicion, gramaje y origen (solo los campos rellenos), precio y
+  "Ver ficha", que abre la hoja de producto de siempre.
+- La hoja de producto muestra la ficha tecnica completa (tabla, cuidados, ensayos, historia) debajo
+  del boton de compra.
 - En el catalogo normal, las prendas premium llevan un distintivo **Premium** y salen primero.
+- Si una prenda no tiene foto, se pinta su inicial sobre fondo oscuro (nunca una foto de relleno).
 
 ### Decision: los premium tambien salen en el catalogo normal
 

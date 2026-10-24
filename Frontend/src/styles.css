@@ -321,62 +321,59 @@
   .hero-content .hero-copy{margin-inline:auto;max-width:440px}
 }
 
-/* ===================== SERIE PREMIUM · fichas tecnicas =====================
-   Va entre el hero y el catalogo. La estetica imita una hoja de laboratorio:
-   papel mas oscuro que el resto de la pagina, lineas finas, etiquetas mono y
-   una barra de composicion. Todo lo que se pinta sale del panel, nada inventado. */
-.premium{background:#efe9df;border-top:1px solid #ded8d0;padding:84px 6vw 78px}
-.premium-head{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:10px 48px;align-items:end}
-.premium-head .eyebrow{grid-column:1/-1;margin:0}
-.premium-head h2{margin:0;font-family:'Playfair Display',serif;font-size:clamp(40px,5.6vw,74px);line-height:.98;font-weight:600;letter-spacing:-.01em}
-.premium-head h2 em{color:#d5654d;font-style:italic}
-.premium-intro{margin:0 0 8px;justify-self:end;max-width:380px;color:#6b625b;font-size:14.5px;line-height:1.6}
-/* Cinta de datos: solo hechos de las fichas (origen, gramaje, tirada) o, si no hay, los nombres. */
-.premium-ticker{margin:32px auto 0;max-width:1180px;overflow:hidden;border-top:1px solid #d8d0c5;border-bottom:1px solid #d8d0c5;-webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
-.premium-ticker-track{display:flex;width:-moz-max-content;width:max-content;animation:hero-marquee 44s linear infinite;will-change:transform}
-.premium-ticker-group{display:flex}
-.premium-ticker-group span{display:inline-flex;align-items:center;gap:16px;padding:13px 0 13px 16px;font:600 10.5px/1 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c6f62;white-space:nowrap}
-.premium-ticker-group i{font-style:normal;color:#d5654d}
-.premium-list{list-style:none;margin:40px auto 0;padding:0;max-width:1180px;display:grid;gap:26px}
-.premium-item{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);background:#fff;border:1px solid #e0d8cd;border-radius:20px;overflow:hidden;box-shadow:0 18px 44px rgba(43,41,39,.06)}
-/* Ritmo editorial: la foto alterna de lado para que la lista no sea una columna gris. */
-.premium-item:nth-child(even) .premium-media{order:2}
-.premium-media{position:relative;display:block;width:100%;margin:0;padding:0;border:0;background:#e8e1d6;aspect-ratio:4/5;overflow:hidden;cursor:pointer}
-.premium-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
-.premium-media:hover img{transform:scale(1.03)}
-.premium-media:focus-visible{outline:2px solid #2b2927;outline-offset:-4px}
-.premium-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 120px Georgia;color:#c28a72}
-.premium-num{position:absolute;top:16px;left:16px;padding:7px 10px;border-radius:999px;background:rgba(43,41,39,.58);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font:600 11px/1 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.12em}
-.premium-stamp{position:absolute;top:16px;right:16px;padding:7px 11px;border-radius:999px;background:#fff;color:#2b2927;font:700 9.5px/1 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.16em;text-transform:uppercase;box-shadow:0 2px 10px rgba(43,41,39,.12)}
-.premium-body{padding:32px 38px 28px;display:flex;flex-direction:column;gap:13px;min-width:0}
-.premium-kicker{margin:0;font:700 10.5px/1.2 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#9d6a51}
-.premium-name{margin:0;font-family:'Playfair Display',serif;font-size:clamp(27px,3vw,40px);line-height:1.02;font-weight:600;overflow-wrap:anywhere}
-/* Barra de composicion: un segmento por fibra, ancho = porcentaje. */
-.premium-fibers{display:flex;width:100%;height:8px;margin-top:3px;border-radius:999px;overflow:hidden;background:#efe9e1}
-.premium-fibers span{height:100%}
-.premium-fibers span[data-i="0"]{background:#2b2927}
-.premium-fibers span[data-i="1"]{background:#d5654d}
-.premium-fibers span[data-i="2"]{background:#56806b}
-.premium-fibers span[data-i="3"]{background:#b8863b}
-.premium-fibers span[data-i="4"]{background:#c9b8a4}
-.premium-specs{margin:4px 0 0;border-top:1px solid #eee7de}
-.premium-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;padding:8px 0;border-bottom:1px solid #f1ece4}
-.premium-row dt{font:600 9.5px/1.7 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a2978a}
-.premium-row dd{margin:0;font-size:13.5px;line-height:1.55;color:#3d3935;overflow-wrap:anywhere}
-.premium-tests{margin-top:2px}
-.premium-tests-title{margin:0 0 6px;font:600 9.5px/1.4 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a2978a}
-.premium-tests ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.premium-tests li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 11px;background:#f7f4ef;border-left:2px solid #56806b;font-size:12.5px;line-height:1.45}
-.premium-test-name{font-weight:600;color:#2b2927}
-.premium-test-result{font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;color:#2f514b;text-align:right;white-space:nowrap}
-.premium-test-method{grid-column:1/-1;color:#a2978a;font:10.5px/1.4 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.02em}
-.premium-story{margin:2px 0 0;font-size:13px;line-height:1.6;color:#6b625b;font-style:italic}
-.premium-foot{margin-top:auto;padding-top:15px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #eee7de}
-.premium-price{font-family:'Playfair Display',serif;font-size:26px;white-space:nowrap}
-.premium-cta{display:inline-flex;align-items:center;gap:8px;padding:11px 19px;border-radius:999px;border:1px solid #2b2927;background:transparent;color:#2b2927;font-size:13px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
-.premium-cta:hover{background:#2b2927;color:#fff}
+/* ===================== SERIE PREMIUM · carrusel editorial =====================
+   Una prenda destacada a lo grande, con el texto encima de la foto, y debajo una
+   tira de miniaturas que se desliza de lado. La ficha tecnica completa vive en la
+   hoja de producto; aqui solo se asoma una linea con datos reales de la ficha. */
+.premium{background:#efe9df;border-top:1px solid #ded8d0;padding:64px 6vw 72px}
+.premium-head{max-width:1180px;margin:0 auto 18px;display:flex;align-items:end;justify-content:space-between;gap:24px}
+.premium-head .eyebrow{margin:0 0 6px}
+.premium-lede{margin:0;color:#6b625b;font-size:14px;line-height:1.5}
+.premium-arrows{display:flex;gap:8px;flex:none}
+.premium-arrow{width:42px;height:42px;display:grid;place-items:center;border:1px solid #c9c0b2;border-radius:50%;background:transparent;color:#2b2927;font-size:16px;line-height:1;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
+.premium-arrow:hover{background:#2b2927;border-color:#2b2927;color:#fff}
+.premium-arrow:focus-visible{outline:2px solid #2b2927;outline-offset:3px}
+.premium-stage{position:relative;max-width:1180px;margin:0 auto;border-radius:22px;overflow:hidden;background:#2b2927;aspect-ratio:16/9;max-height:620px}
+.premium-stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:premium-fade .5s ease}
+.premium-stage-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 180px Georgia;color:#6b625b}
+.premium-stage::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,21,18,.58) 0%,rgba(24,21,18,.18) 42%,rgba(24,21,18,.68) 100%);pointer-events:none}
+.premium-index{position:absolute;top:18px;right:20px;z-index:2;font:600 10px/1 ui-monospace,monospace;letter-spacing:.16em;color:#fff;opacity:.85}
+.premium-copy{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px 96px;text-align:center;color:#fff;pointer-events:none}
+.premium-kicker{margin:0 0 22px;font:600 10px/1.5 ui-monospace,monospace;letter-spacing:.26em;text-transform:uppercase;color:#f4ece1}
+.premium-title{margin:0;font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,5.4vw,72px);line-height:1.02;text-transform:uppercase;letter-spacing:.16em;text-indent:.16em;text-shadow:0 2px 24px rgba(0,0,0,.25);overflow-wrap:anywhere}
+.premium-sub{margin:16px 0 0;font:600 10px/1.6 ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;color:#f1e7db}
+.premium-foot{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:18px 22px}
+.premium-specs{flex:1 1 100%;min-width:0;font:500 10px/1.5 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#eadfd2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.premium-price{font-family:'Playfair Display',serif;font-size:24px;color:#fff;white-space:nowrap}
+.premium-cta{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:1px solid rgba(255,255,255,.65);border-radius:999px;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
+.premium-cta:hover{background:#fff;color:#2b2927}
 .premium-cta span{transition:transform .18s}
 .premium-cta:hover span{transform:translateX(3px)}
+.premium-rail{max-width:1180px;margin:14px auto 0;display:flex;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding:2px 2px 10px}
+.premium-rail::-webkit-scrollbar{display:none}
+.premium-thumb{position:relative;flex:0 0 auto;width:clamp(150px,19vw,230px);aspect-ratio:4/5;padding:0;border:0;border-radius:14px;overflow:hidden;background:#e2dacd;cursor:pointer;scroll-snap-align:center;opacity:.72;transition:opacity .2s,outline-color .2s}
+.premium-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.premium-thumb[data-active]{opacity:1;outline:2px solid #2b2927;outline-offset:3px}
+.premium-thumb:hover{opacity:.92}
+.premium-thumb:focus-visible{outline:2px solid #2b2927;outline-offset:3px}
+.premium-thumb-initial{display:grid;place-items:center;width:100%;height:100%;font:italic 56px Georgia;color:#b0836a}
+.premium-thumb-num{position:absolute;left:8px;bottom:8px;padding:4px 7px;border-radius:999px;background:rgba(43,41,39,.62);color:#fff;font:600 9px/1 ui-monospace,monospace;letter-spacing:.1em}
+@keyframes premium-fade{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.premium-stage-img{animation:none}}
+@media(min-width:761px){.premium-specs{flex:1 1 0}}
+@media(max-width:760px){
+  .premium{padding:44px 0 56px}
+  .premium-head{padding:0 20px;margin-bottom:16px}
+  .premium-arrows{display:none}
+  .premium-stage{border-radius:0;aspect-ratio:4/5;max-height:none}
+  .premium-copy{padding:48px 22px 120px}
+  .premium-title{font-size:clamp(30px,9.5vw,44px);letter-spacing:.12em;text-indent:.12em}
+  .premium-foot{padding:16px 18px}
+  .premium-price{margin-right:auto;font-size:21px}
+  .premium-rail{padding:2px 20px 10px}
+  .premium-thumb{width:38vw;max-width:170px}
+}
+
 /* Distintivo en la tarjeta normal: el producto premium tambien vive en el catalogo. */
 .pcard-premium{position:absolute;top:12px;right:12px;z-index:2;padding:6px 10px;border-radius:999px;background:#2b2927;color:#f7f4ef;font:700 9.5px/1 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase}
 /* Ficha dentro de la hoja de producto. */
@@ -391,21 +388,6 @@
 .sheet-premium-tests li{padding:7px 10px;background:#f7f4ef;border-left:2px solid #56806b;font-size:12.5px;line-height:1.45;color:#3d3935}
 .sheet-premium-tests small{color:#a2978a;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:10.5px}
 .sheet-premium-story{margin:12px 0 0;font-size:13px;line-height:1.6;color:#6b625b}
-@media(prefers-reduced-motion:reduce){.premium-ticker-track{animation:none}}
-@media(max-width:900px){
-  .premium{padding:64px 20px 58px}
-  .premium-head{grid-template-columns:1fr;gap:12px}
-  .premium-intro{justify-self:start;max-width:none}
-  .premium-ticker{margin-top:24px}
-  .premium-list{margin-top:28px;gap:18px}
-  .premium-item,.premium-item:nth-child(even){grid-template-columns:1fr}
-  .premium-item:nth-child(even) .premium-media{order:0}
-  .premium-media{aspect-ratio:1/1}
-  .premium-body{padding:22px 20px 24px}
-  .premium-row{grid-template-columns:104px minmax(0,1fr);gap:12px}
-  .premium-name{font-size:29px}
-  .premium-price{font-size:23px}
-}
 
 /* ===================== PANEL · bloque premium del formulario ===================== */
 .adm-premium{margin:4px 0 16px;padding:14px 16px;border:1px solid #e4ded6;border-radius:14px;background:#fbf9f6}
