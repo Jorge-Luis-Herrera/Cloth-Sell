@@ -29,11 +29,17 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
   const indice = items.length > 0 ? Math.min(activo, items.length - 1) : 0;
   const producto = items[indice];
 
-  // Al cambiar de prenda, la miniatura activa se centra sola en la tira (sin mover la pagina).
+  // Centra la miniatura activa dentro de la tira. Se mueve solo la tira: con scrollIntoView el
+  // navegador tambien arrastraba la pagina hacia abajo y las flechas se iban de la vista.
   useEffect(() => {
     const contenedor = tira.current;
     const miniatura = contenedor?.children[indice] as HTMLElement | undefined;
-    miniatura?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (!contenedor || !miniatura) return;
+    const caja = contenedor.getBoundingClientRect();
+    const cajaMini = miniatura.getBoundingClientRect();
+    const centro = contenedor.scrollLeft + (cajaMini.left - caja.left) - (caja.width - cajaMini.width) / 2;
+    const suave = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    contenedor.scrollTo({ left: Math.max(0, centro), behavior: suave });
   }, [indice]);
 
   if (!producto) return null;
