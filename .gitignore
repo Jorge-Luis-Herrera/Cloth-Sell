@@ -14,4 +14,6 @@ Backend/uploads/
 *.db-shm
 *.db-wal
 .env
+.env.*
+!.env.example
 .azure/.preview-temp/
