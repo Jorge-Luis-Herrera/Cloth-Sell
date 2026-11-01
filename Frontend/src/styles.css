@@ -199,7 +199,7 @@
 .pcard-media img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .pcard:hover .pcard-media img{transform:scale(1.06)}
 .pcard-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 96px Georgia;color:#c28a72}
-.pcard-badge{position:absolute;top:12px;left:12px;padding:5px 11px;border-radius:999px;background:#fffffff2;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#2c6b57;box-shadow:0 2px 10px #2b29271f}
+.pcard-badge{position:absolute;bottom:12px;left:12px;z-index:2;padding:5px 11px;border-radius:999px;background:#fffffff2;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#2c6b57;box-shadow:0 2px 10px #2b29271f}
 .pcard-badge[data-off="true"]{color:#877d74}
 .pcard-hint{position:absolute;left:50%;bottom:14px;transform:translate(-50%,10px);opacity:0;padding:8px 16px;border-radius:999px;background:#2b2927d9;color:#fff;font-size:12px;font-weight:600;white-space:nowrap;transition:opacity .25s ease,transform .25s ease;pointer-events:none}
 .pcard:hover .pcard-hint{opacity:1;transform:translate(-50%,0)}
@@ -329,49 +329,50 @@
 .premium-head{max-width:1180px;margin:0 auto 18px;display:flex;align-items:end;justify-content:space-between;gap:24px}
 .premium-head .eyebrow{margin:0 0 6px}
 .premium-lede{margin:0;color:#6b625b;font-size:14px;line-height:1.5}
-.premium-arrows{display:flex;gap:8px;flex:none}
-.premium-arrow{width:42px;height:42px;display:grid;place-items:center;border:1px solid #c9c0b2;border-radius:50%;background:transparent;color:#2b2927;font-size:16px;line-height:1;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
-.premium-arrow:hover{background:#2b2927;border-color:#2b2927;color:#fff}
-.premium-arrow:focus-visible{outline:2px solid #2b2927;outline-offset:3px}
-.premium-stage{position:relative;max-width:1180px;margin:0 auto;border-radius:22px;overflow:hidden;background:#2b2927;aspect-ratio:16/9;max-height:620px}
-.premium-stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:premium-fade .5s ease}
-.premium-stage-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 180px Georgia;color:#6b625b}
-.premium-stage::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,21,18,.58) 0%,rgba(24,21,18,.18) 42%,rgba(24,21,18,.68) 100%);pointer-events:none}
-.premium-index{position:absolute;top:18px;right:20px;z-index:2;font:600 10px/1 ui-monospace,monospace;letter-spacing:.16em;color:#fff;opacity:.85}
-.premium-copy{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px 96px;text-align:center;color:#fff;pointer-events:none}
-.premium-kicker{margin:0 0 26px;font:600 10px/1.5 ui-monospace,monospace;letter-spacing:.26em;text-transform:uppercase;color:#f4ece1}
-.premium-title{margin:0;font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,5.4vw,72px);line-height:1.06;text-transform:uppercase;letter-spacing:.16em;text-indent:.16em;text-shadow:0 2px 24px rgba(0,0,0,.25);overflow-wrap:anywhere}
-.premium-sub{margin:22px 0 0;font:600 10px/1.6 ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;color:#f1e7db}
-.premium-foot{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:18px 22px}
+.premium-stage{position:relative;max-width:1180px;margin:0 auto;border-radius:22px;overflow:hidden;background:#2b2927}
+.premium-stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#2f2822;animation:premium-fade .5s ease}
+.premium-stage::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,21,18,.46) 0%,rgba(24,21,18,.22) 50%,rgba(24,21,18,.40) 100%);pointer-events:none}
+/* Letras del centro tal como salen en Estilo_de_Premium.jpeg: kicker pequeño, nombre grande
+   en serif y sub abajo. El título habla siempre de la prenda que está de fondo. */
+.premium-copy{position:relative;z-index:1;padding:clamp(44px,8vw,88px) 24px 44px;display:flex;flex-direction:column;align-items:center;text-align:center;color:#fff;pointer-events:none}
+.premium-kicker{margin:0 0 24px;font:600 10px/1.5 ui-monospace,monospace;letter-spacing:.34em;text-transform:uppercase;color:#f4ece1}
+.premium-title{margin:0;font-family:'Playfair Display','DM Serif Display',Georgia,serif;font-weight:400;font-size:clamp(24px,3.6vw,46px);line-height:1.08;text-transform:uppercase;letter-spacing:.26em;text-indent:.26em;text-shadow:0 2px 26px rgba(0,0,0,.35);overflow-wrap:anywhere}
+.premium-sub{margin:20px 0 0;font:600 10px/1.6 ui-monospace,monospace;letter-spacing:.3em;text-transform:uppercase;color:#f1e7db}
+/* Fila de producticos tal como la referencia: rectangulares a los bordes (sin margenes),
+   cuadradas de esquina y lo mas pegadas posibles entre si, flotando en el centro de la foto.
+   Con mas de 4 prendas es una tira deslizable: la minibarra de scroll queda debajo. */
+.premium-grid{position:relative;z-index:1;display:flex;width:100%;gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:#2b2927 #dcd2c5;margin-bottom:clamp(36px,7vw,72px)}
+.premium-grid::-webkit-scrollbar{height:6px}
+.premium-grid::-webkit-scrollbar-track{background:rgba(247,244,239,.35);border-radius:999px}
+.premium-grid::-webkit-scrollbar-thumb{background:#2b2927;border-radius:999px}
+.premium-card{position:relative;flex:0 0 calc((100% - 6px)/4);min-width:0;aspect-ratio:3/5;padding:0;border:0;border-radius:0;overflow:hidden;background:#3a3733;cursor:pointer;scroll-snap-align:start;transition:opacity .2s}
+.premium-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.premium-card:hover{opacity:.92}
+.premium-card:focus-visible{outline:2px solid #f7f4ef;outline-offset:3px}
+.premium-card-initial{position:absolute;inset:0;display:grid;place-items:center;font:italic 44px Georgia;color:#b0836a}
+.premium-scrollbar{position:relative;z-index:2;width:100vw;height:3px;margin:0 0 clamp(28px,5vw,52px) calc(50% - 50vw);overflow:hidden;background:rgba(247,244,239,.35)}
+.premium-scrollbar-thumb{position:absolute;top:0;height:100%;min-width:18%;background:#f7f4ef;transition:left .12s ease,width .12s ease}
+.premium-foot{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:0 22px 24px}
 .premium-specs{flex:1 1 100%;min-width:0;font:500 10px/1.5 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:#eadfd2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .premium-price{font-family:'Playfair Display',serif;font-size:24px;color:#fff;white-space:nowrap}
 .premium-cta{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:1px solid rgba(255,255,255,.65);border-radius:999px;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:background .18s,color .18s}
 .premium-cta:hover{background:#fff;color:#2b2927}
 .premium-cta span{transition:transform .18s}
 .premium-cta:hover span{transform:translateX(3px)}
-.premium-rail{max-width:1180px;margin:14px auto 0;display:flex;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding:2px 2px 10px}
-.premium-rail::-webkit-scrollbar{display:none}
-.premium-thumb{position:relative;flex:0 0 auto;width:clamp(150px,19vw,230px);aspect-ratio:4/5;padding:0;border:0;border-radius:14px;overflow:hidden;background:#e2dacd;cursor:pointer;scroll-snap-align:center;opacity:.72;transition:opacity .2s,outline-color .2s}
-.premium-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.premium-thumb[data-active]{opacity:1;outline:2px solid #2b2927;outline-offset:3px}
-.premium-thumb:hover{opacity:.92}
-.premium-thumb:focus-visible{outline:2px solid #2b2927;outline-offset:3px}
-.premium-thumb-initial{display:grid;place-items:center;width:100%;height:100%;font:italic 56px Georgia;color:#b0836a}
-.premium-thumb-num{position:absolute;left:8px;bottom:8px;padding:4px 7px;border-radius:999px;background:rgba(43,41,39,.62);color:#fff;font:600 9px/1 ui-monospace,monospace;letter-spacing:.1em}
 @keyframes premium-fade{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.premium-stage-img{animation:none}}
 @media(min-width:761px){.premium-specs{flex:1 1 0}}
 @media(max-width:760px){
   .premium{padding:44px 0 56px}
   .premium-head{padding:0 20px;margin-bottom:16px}
-  .premium-arrows{display:none}
-  .premium-stage{border-radius:0;aspect-ratio:4/5;max-height:none}
-  .premium-copy{padding:48px 22px 120px}
-  .premium-title{font-size:clamp(30px,9.5vw,44px);letter-spacing:.12em;text-indent:.12em}
-  .premium-foot{padding:16px 18px}
+  .premium-stage{border-radius:0}
+  .premium-copy{padding:36px 16px 30px}
+  .premium-title{font-size:clamp(22px,6.2vw,32px);letter-spacing:.2em;text-indent:.2em}
+  .premium-grid{margin-bottom:0;gap:2px;scroll-padding-inline:0;scrollbar-width:none;touch-action:pan-x}
+  .premium-scrollbar{width:100vw;margin:0 0 30px;height:3px}
+  .premium-grid::-webkit-scrollbar{display:none}
+  .premium-foot{padding:0 18px 18px}
   .premium-price{margin-right:auto;font-size:21px}
-  .premium-rail{padding:2px 20px 10px}
-  .premium-thumb{width:38vw;max-width:170px}
 }
 
 /* Distintivo en la tarjeta normal: el producto premium tambien vive en el catalogo. */

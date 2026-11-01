@@ -3,6 +3,9 @@ import { Product, STORE_CURRENCY, STORE_LOCALE } from './api';
 
 const money = (value: number) => new Intl.NumberFormat(STORE_LOCALE, { style: 'currency', currency: STORE_CURRENCY }).format(value);
 
+/** Fondo fijo de la serie premium (no cambia al tocar: siempre la misma foto). */
+const FONDO_PREMIUM = '/media/premium/bg-premium.png';
+
 /** Linea tecnica de la prenda activa. Solo con los datos que existen: si no hay ficha, no se
  *  inventa nada y la linea desaparece. */
 function lineaTecnica(product: Product) {
@@ -19,35 +22,42 @@ function lineaTecnica(product: Product) {
 }
 
 /**
- * Serie premium: una prenda destacada a lo grande, con el texto encima de la foto, y debajo
- * una tira de miniaturas que se desliza de lado. Tocar una miniatura (o las flechas) cambia
- * el destacado. La ficha tecnica completa sigue en la hoja de producto.
+ * Serie premium al estilo de la referencia (Estilo_de_Premium.jpeg): fondo fijo, oscurecido,
+ * con el nombre del activo en el centro y debajo una fila de hasta 4 producticos limpios que
+ * ocupa el ancho. Tocar un productico elige la prenda y actualiza las letras y los datos de
+ * abajo; con mas de 4 prendas la fila se desliza de lado para pasar por todas. La ficha
+ * completa sigue en la hoja de producto.
  */
 export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (product: Product) => void }) {
   const [activo, setActivo] = useState(0);
+  const [indicador, setIndicador] = useState({ left: 0, width: 100 });
   const tira = useRef<HTMLDivElement>(null);
   const indice = items.length > 0 ? Math.min(activo, items.length - 1) : 0;
   const producto = items[indice];
 
-  // Centra la miniatura activa dentro de la tira. Se mueve solo la tira: con scrollIntoView el
-  // navegador tambien arrastraba la pagina hacia abajo y las flechas se iban de la vista.
+  const medirIndicador = () => {
+    const tiraEl = tira.current;
+    if (!tiraEl) return;
+    const maxScroll = tiraEl.scrollWidth - tiraEl.clientWidth;
+    if (maxScroll <= 0) {
+      setIndicador({ left: 0, width: 100 });
+      return;
+    }
+    const width = Math.max(18, (tiraEl.clientWidth / tiraEl.scrollWidth) * 100);
+    const left = (tiraEl.scrollLeft / maxScroll) * (100 - width);
+    setIndicador({ left, width });
+  };
+
   useEffect(() => {
-    const contenedor = tira.current;
-    const miniatura = contenedor?.children[indice] as HTMLElement | undefined;
-    if (!contenedor || !miniatura) return;
-    const caja = contenedor.getBoundingClientRect();
-    const cajaMini = miniatura.getBoundingClientRect();
-    const centro = contenedor.scrollLeft + (cajaMini.left - caja.left) - (caja.width - cajaMini.width) / 2;
-    const suave = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-    contenedor.scrollTo({ left: Math.max(0, centro), behavior: suave });
-  }, [indice]);
+    medirIndicador();
+    window.addEventListener('resize', medirIndicador);
+    return () => window.removeEventListener('resize', medirIndicador);
+  }, [items.length]);
 
   if (!producto) return null;
 
-  const foto = producto.images[0];
   const ficha = producto.premium;
   const datos = lineaTecnica(producto);
-  const mover = (paso: number) => setActivo((actual) => (actual + paso + items.length) % items.length);
 
   return (
     <section id="premium" className="premium" aria-label="Serie premium">
@@ -56,54 +66,44 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
           <p className="eyebrow">SERIE PREMIUM · EDICIÓN LIMITADA</p>
           <p className="premium-lede">Pocas prendas, elegidas una a una.</p>
         </div>
-        {items.length > 1 && (
-          <div className="premium-arrows">
-            <button type="button" className="premium-arrow" onClick={() => mover(-1)} aria-label="Prenda anterior">←</button>
-            <button type="button" className="premium-arrow" onClick={() => mover(1)} aria-label="Prenda siguiente">→</button>
-          </div>
-        )}
       </div>
 
       <div className="premium-stage">
-        {foto
-          ? <img key={producto.id} className="premium-stage-img" src={foto.url} alt={foto.altText || producto.name} loading="lazy" decoding="async" />
-          : <span className="premium-stage-initial" aria-hidden="true">{producto.name.slice(0, 1)}</span>}
-        <span className="premium-index" aria-hidden="true">{String(indice + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}</span>
+        <img className="premium-stage-img" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
+
         <div className="premium-copy" aria-live="polite">
           <p className="premium-kicker">¿Buscas una prenda que dure?</p>
           <h2 className="premium-title">{producto.name}</h2>
           <p className="premium-sub">{ficha?.tagline || 'Edición limitada'}</p>
         </div>
+
+        {/* Producticos limpios (sin texto) en el centro de la foto: con mas de 4, la tira
+            entera se desliza de lado y lleva su minibarra de scroll debajo. */}
+        <div className="premium-grid" ref={tira} onScroll={medirIndicador} aria-roledescription="carrusel" aria-label="Prendas de la serie premium">
+          {items.map((item, i) => (
+            <button
+              type="button"
+              key={item.id}
+              className="premium-card"
+              aria-label={`Ver ${item.name} como prenda destacada`}
+              onClick={() => setActivo(i)}
+            >
+              {item.images[0]
+                ? <img src={item.images[0].url} alt="" loading="lazy" decoding="async" />
+                : <span className="premium-card-initial" aria-hidden="true">{item.name.slice(0, 1)}</span>}
+            </button>
+          ))}
+        </div>
+        <div className="premium-scrollbar" role="scrollbar" aria-label="Posición en la serie premium" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(indicador.left / Math.max(1, 100 - indicador.width) * 100)}>
+          <span className="premium-scrollbar-thumb" style={{ left: `${indicador.left}%`, width: `${indicador.width}%` }} />
+        </div>
+
         <div className="premium-foot">
           {datos && <span className="premium-specs">{datos}</span>}
           <span className="premium-price">{money(producto.basePrice)}</span>
           <button type="button" className="premium-cta" onClick={() => onOpen(producto)}>Ver ficha <span aria-hidden="true">→</span></button>
         </div>
       </div>
-
-      {items.length > 1 && (
-        <div className="premium-rail" ref={tira} aria-label="Prendas de la serie premium">
-          {items.map((item, i) => {
-            const miniatura = item.images[0];
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className="premium-thumb"
-                data-active={i === indice || undefined}
-                aria-current={i === indice ? 'true' : undefined}
-                aria-label={item.name}
-                onClick={() => setActivo(i)}
-              >
-                {miniatura
-                  ? <img src={miniatura.url} alt="" loading="lazy" decoding="async" />
-                  : <span className="premium-thumb-initial" aria-hidden="true">{item.name.slice(0, 1)}</span>}
-                <span className="premium-thumb-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </section>
   );
 }
