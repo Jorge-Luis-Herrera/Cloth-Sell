@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, Field, Input, Select, Spinner, Tab, TabList, Textarea, Toaster, useId, useToastController, Toast, ToastTitle } from '@fluentui/react-components';
-import { STORE_CURRENCY, STORE_LOCALE, api, CartLine, Order, Product, Variant } from './api';
+import { STORE_CURRENCY, STORE_LOCALE, api, CartLine, CatalogSession, Order, Product, ProductImage, Variant } from './api';
 import { AdminApp } from './admin/AdminApp';
 import { PremiumSection } from './PremiumSection';
 import './styles.css';
@@ -15,12 +15,12 @@ const DATOS_CLIENTE_KEY = 'jenny-datos-cliente';
 const readDatosCliente = (): DatosCliente | null => { try { const d = JSON.parse(localStorage.getItem(DATOS_CLIENTE_KEY) || 'null'); return d && typeof d.name === 'string' ? d as DatosCliente : null; } catch { return null; } };
 
 /** WhatsApp de la tienda: al confirmar pedido se manda el resumen por aqui. */
-const WHATSAPP_NUMBER = '5354504048';
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5354504048';
 
 /** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda).
  *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
 const mensajeWhatsapp = (order: Order) => {
-  const lineas = (order.items ?? []).map(it => `• ${it.quantity} × ${it.name} (${it.size} / ${it.color}) — ${money(it.lineTotal)}`).join('\n');
+  const lineas = (order.items ?? []).map(it => `• ${it.quantity} × ${it.name}${it.session ? ` [${it.session}]` : ''} (${it.size} / ${it.color}) — ${money(it.lineTotal)}`).join('\n');
   return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)}\n\n${lineas}\n\nTotal: ${money(order.total)}\n\n👤 ${order.customerName}\n📞 ${order.customerPhone}\n📍 ${order.deliveryAddress}${order.notes ? `\n📝 ${order.notes}` : ''}`;
 };
 
@@ -41,15 +41,17 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
   product: Product; variant?: Variant; activeVariantId?: string;
   onOpen: () => void; onSelectVariant: (id: string) => void; onAdd: () => void;
 }) {
-  const disponible = !!variant?.stockQuantity;
+  const disponible = Boolean(variant);
+  const portada = variant && product.images.find((image) => image.variantId === variant.id)
+    || product.images.find((image) => !image.variantId)
+    || product.images[0];
   return (
     <article className="pcard">
       <button type="button" className="pcard-media" aria-label={`Ver detalle de ${product.name}`} onClick={onOpen}>
-        {product.images[0]
-          ? <img src={product.images[0].url} alt={product.images[0].altText} loading="lazy" decoding="async" />
+        {portada
+          ? <img src={portada.url} alt={portada.altText} loading="lazy" decoding="async" />
           : <span className="pcard-initial">{product.name.slice(0, 1)}</span>}
         {product.isPremium && <span className="pcard-premium">Premium</span>}
-        <span className="pcard-badge" data-off={!disponible}>{disponible ? 'Disponible' : 'Agotado'}</span>
         <span className="pcard-hint">Ver detalles</span>
       </button>
       <div className="pcard-body">
@@ -58,16 +60,49 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
         {product.variants.length > 0 && (
           <div className="pcard-variants">
             {product.variants.map(v => (
-              <button type="button" key={v.id} className="pcard-chip" data-on={activeVariantId === v.id} disabled={!v.stockQuantity} onClick={() => onSelectVariant(v.id)}>{v.size} / {v.color}</button>
+              <button type="button" key={v.id} className="pcard-chip" data-on={activeVariantId === v.id} onClick={() => onSelectVariant(v.id)}>{v.size} / {v.color}</button>
             ))}
           </div>
         )}
         <div className="pcard-foot">
           <strong className="pcard-price">{money(variant?.price ?? product.basePrice)}</strong>
-          <button type="button" className="pcard-add" disabled={!disponible} onClick={onAdd}>{disponible ? 'Añadir' : 'Sin stock'}</button>
+          <button type="button" className="pcard-add" disabled={!disponible} onClick={onAdd}>Encargar</button>
         </div>
       </div>
     </article>
+  );
+}
+
+function ProductGallery({ images, alt, onOpen }: { images: ProductImage[]; alt: string; onOpen: (url: string) => void }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const startX = useRef<number | null>(null);
+  const current = images[index];
+  const move = (delta: number) => setIndex((value) => (value + delta + images.length) % images.length);
+  useEffect(() => {
+    if (images.length < 2 || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => move(1), 3000);
+    return () => window.clearInterval(timer);
+  }, [images.length, paused]);
+  if (!current) return <div className="sheet-photo"><span>{alt.slice(0, 1)}</span></div>;
+  return (
+    <div className="sheet-gallery" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} onTouchStart={(event) => { setPaused(true); startX.current = event.touches[0].clientX; }} onTouchEnd={(event) => {
+      if (startX.current === null) return;
+      const distance = event.changedTouches[0].clientX - startX.current;
+      if (Math.abs(distance) > 40) move(distance < 0 ? 1 : -1);
+      startX.current = null;
+    }}>
+      <button type="button" className="gallery-photo" title="Toca para verla completa" onClick={() => onOpen(current.url)}>
+        <img src={current.url} alt={current.altText || alt} />
+      </button>
+      {images.length > 1 && <>
+        <button type="button" className="gallery-arrow gallery-prev" aria-label="Imagen anterior" onClick={() => move(-1)}>‹</button>
+        <button type="button" className="gallery-arrow gallery-next" aria-label="Imagen siguiente" onClick={() => move(1)}>›</button>
+        <div className="gallery-dots" aria-label={`Imagen ${index + 1} de ${images.length}`}>
+          {images.map((image, imageIndex) => <button type="button" key={image.id} aria-label={`Ver imagen ${imageIndex + 1}`} aria-pressed={imageIndex === index} onClick={() => setIndex(imageIndex)} />)}
+        </div>
+      </>}
+    </div>
   );
 }
 
@@ -98,12 +133,14 @@ function Storefront() {
   // Serie premium: se pide aparte del catalogo para poder ordenarla por curaduria y pintarla
   // antes de la rejilla normal. Si el backend no la tiene, la seccion simplemente no aparece.
   const [premium, setPremium] = useState<Product[]>([]);
+  const [sessions, setSessions] = useState<CatalogSession[]>([]);
+  const [activeSession, setActiveSession] = useState('');
 
   /** Carga una pagina del catalogo. `append` la añade a lo ya visible («cargar más»), si no la
    *  reemplaza. El catalogo lo pagina y filtra el backend: antes se pedia una sola vez con un
    *  tope de 24 y los productos siguientes no existian para el navegador. */
   const loadPage = async (buscar: string, numero: number, append: boolean) => {
-    const data = await api.products({ search: buscar, page: numero, pageSize: PAGE_SIZE });
+    const data = await api.products({ search: buscar, session: activeSession || undefined, tier: 'normal', page: numero, pageSize: PAGE_SIZE });
     setProducts((current) => append ? [...current, ...data.items] : data.items);
     setTotal(data.total);
     setPage(data.page);
@@ -118,7 +155,7 @@ function Storefront() {
       .catch(() => { if (!cancelado) dispatchToast(<Toast><ToastTitle>No pudimos cargar el catálogo.</ToastTitle></Toast>, { intent: 'error' }); })
       .finally(() => { if (!cancelado) setLoading(false); });
     return () => { cancelado = true; };
-  }, [busqueda]);
+  }, [busqueda, activeSession]);
 
   // Espera medio segundo tras escribir para no lanzar una peticion por cada tecla.
   useEffect(() => { const t = window.setTimeout(() => setBusqueda(query), 350); return () => window.clearTimeout(t); }, [query]);
@@ -129,6 +166,12 @@ function Storefront() {
     (api.premium() as Promise<{ items: Product[] }>)
       .then(data => { if (!cancelado) setPremium(data?.items ?? []); })
       .catch(() => { if (!cancelado) setPremium([]); });
+    return () => { cancelado = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelado = false;
+    api.sessions().then(data => { if (!cancelado) setSessions(data); }).catch(() => { if (!cancelado) setSessions([]); });
     return () => { cancelado = true; };
   }, []);
 
@@ -160,9 +203,9 @@ function Storefront() {
   // Si el pedido se queda sin prendas, el panel se esconde solo.
   useEffect(() => { if (cart.length === 0 && !checkout) setCartOpen(false); }, [cart.length, checkout]);
   const totalCarrito = cart.reduce((sum, line) => sum + (line.variant.price * line.quantity), 0);
-  const add = (product: Product, variant: Variant) => { setCart(current => { const found = current.find(line => line.variant.id === variant.id); return found ? current.map(line => line.variant.id === variant.id ? { ...line, quantity: Math.min(line.quantity + 1, variant.stockQuantity) } : line) : [...current, { product, variant, quantity: 1 }]; }); setCartOpen(true); };
+  const add = (product: Product, variant: Variant) => { setCart(current => { const found = current.find(line => line.variant.id === variant.id); return found ? current.map(line => line.variant.id === variant.id ? { ...line, quantity: line.quantity + 1 } : line) : [...current, { product, variant, quantity: 1 }]; }); setCartOpen(true); };
   /** Sube o baja la cantidad de una línea; si llega a cero, la quita del pedido. */
-  const changeQty = (variantId: string, delta: number) => setCart(current => current.flatMap(line => { if (line.variant.id !== variantId) return [line]; const next = Math.min(Math.max(line.quantity + delta, 0), Math.max(line.variant.stockQuantity, 1)); return next <= 0 ? [] : [{ ...line, quantity: next }]; }));
+  const changeQty = (variantId: string, delta: number) => setCart(current => current.flatMap(line => { if (line.variant.id !== variantId) return [line]; const next = Math.max(line.quantity + delta, 0); return next <= 0 ? [] : [{ ...line, quantity: next }]; }));
   /** Quita una prenda entera del pedido. */
   const removeLine = (variantId: string) => setCart(current => current.filter(line => line.variant.id !== variantId));
   /** Ubica al cliente en dos intentos: primero por red (rápido, y sí funciona en laptops sin
@@ -232,7 +275,7 @@ function Storefront() {
         customerPhone: String(data.get('phone') ?? '').trim(),
         deliveryAddress: address + gpsLine,
         notes: String(data.get('notes') ?? '').trim() || null,
-        items: cart.map(line => ({ name: line.product.name, size: line.variant.size, color: line.variant.color, unitPrice: line.variant.price, quantity: line.quantity, lineTotal: line.variant.price * line.quantity })),
+        items: cart.map(line => ({ name: line.product.name, size: line.variant.size, color: line.variant.color, session: sessions.find((session) => session.id === line.product.sessionId)?.name, unitPrice: line.variant.price, quantity: line.quantity, lineTotal: line.variant.price * line.quantity })),
       };
       setCart([]); setCheckout(false); setSent(false); setGps(null); setRecibo(creado);
       // Llevamos la ventana ya abierta al chat de WhatsApp con el pedido (sin bloqueos).
@@ -244,14 +287,11 @@ function Storefront() {
     } catch (error) {
       if (waWindow) waWindow.close();
       const crudo = error instanceof Error ? error.message : '';
-      // El backend devuelve este texto en inglés cuando una prenda se quedó sin stock.
-      const mensaje = /unavailable or out of stock/i.test(crudo)
-        ? 'Alguna prenda de tu pedido ya no tiene stock. Quítala del carrito y vuelve a confirmar.'
-        : (crudo || 'No se pudo crear el pedido.');
+      const mensaje = crudo || 'No se pudo crear el pedido.';
       dispatchToast(<Toast><ToastTitle>{mensaje}</ToastTitle></Toast>, { intent: 'error' });
     }
   };
-  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><span className="brand-mark">J</span><span>Jenny</span></div><nav><a href="#catalogo">Catálogo</a>{premium.length > 0 && <a href="#premium">Premium</a>}<a href="#historia">La colección</a></nav></header><main><section className="hero">
+  return <><Toaster toasterId={toasterId} /><header className="topbar"><div className="brand"><img className="brand-mark" src="/media/brand/isotypo.jpg" alt="" /><span>JEN STUDIO</span></div><nav><a href="#catalogo">Catálogo</a>{premium.length > 0 && <a href="#premium">Premium</a>}<a href="#historia">La colección</a></nav></header><main><section className="hero">
             <h1 className="sr-only">Viste tu propio estilo</h1>
             <div className="hero-stage">
               <div className="hero-marquee" aria-hidden="true">
@@ -274,24 +314,25 @@ function Storefront() {
               <p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
-          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
+          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="session-filters" role="group" aria-label="Filtrar por sesion"><button type="button" className="adm-pill" aria-pressed={!activeSession} onClick={() => setActiveSession('')}>Todas</button>{sessions.map(session => <button type="button" className="adm-pill" key={session.id} aria-pressed={activeSession === session.id} onClick={() => setActiveSession(session.id)}>{session.name}</button>)}</div><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p> : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
-          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JENNY STUDIO</p><h2>Menos ruido.<br /><em>Más tú.</em></h2><p>Diseñamos con una idea sencilla: que abrir tu armario se sienta como volver a ti.</p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
+          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JEN STUDIO</p><h2>No se trata solo de como te ves,<br /><em>sino de como avanzas.</em></h2><p>Creces y descubres hacia donde quieres llegar. <span aria-label="corazon marron">🤎</span></p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
+  const galeria = detail.variants.length > 0 && sheetVariant
+    ? [...detail.images.filter((image) => image.variantId === sheetVariant.id), ...detail.images.filter((image) => !image.variantId)]
+    : detail.images;
   return <div className="sheet-veil" onClick={() => setDetail(null)}>
   <section className="sheet" role="dialog" aria-modal="true" aria-label={detail.name} onClick={e => e.stopPropagation()}>
     <button className="sheet-close" aria-label="Cerrar ficha de producto" onClick={() => setDetail(null)}>×</button>
-    <div className="sheet-photo" title="Toca para verla completa en pantalla" onClick={() => { if (detail.images[0]) setFoto(detail.images[0].url); }}>
-      {detail.images[0] ? <img src={detail.images[0].url} alt={detail.images[0].altText} /> : <span>{detail.name.slice(0, 1)}</span>}
-    </div>
+    <ProductGallery key={sheetVariant?.id ?? detail.id} images={galeria} alt={detail.name} onOpen={setFoto} />
     <div className="sheet-info">
-      <p className="eyebrow">JENNY STUDIO</p>
+      <p className="eyebrow">JEN STUDIO</p>
       <h3>{detail.name}</h3>
       <p>{detail.description}</p>
       <strong className="sheet-price">{money(sheetVariant?.price ?? detail.basePrice)}</strong>
-      <div className="sheet-variants">{detail.variants.map(v => <Button key={v.id} size="small" appearance={sheetVariant?.id === v.id ? 'primary' : 'outline'} disabled={!v.stockQuantity} onClick={() => setSelected({ ...selected, [detail.id]: v.id })}>{v.size} / {v.color}</Button>)}</div>
-      <Button appearance="primary" disabled={!sheetVariant?.stockQuantity} onClick={() => sheetVariant && add(detail, sheetVariant)}>{sheetVariant?.stockQuantity ? 'Añadir al carrito' : 'Sin stock'}</Button>
-      <p className="sheet-hint">{sheetVariant?.stockQuantity ? `Disponible · ${sheetVariant.stockQuantity} en inventario` : 'Agotado'} · Toca la foto para verla completa en pantalla.</p>
+      <div className="sheet-variants">{detail.variants.map(v => <Button key={v.id} size="small" appearance={sheetVariant?.id === v.id ? 'primary' : 'outline'} onClick={() => setSelected({ ...selected, [detail.id]: v.id })}>{v.size} / {v.color}</Button>)}</div>
+      <Button appearance="primary" disabled={!sheetVariant} onClick={() => sheetVariant && add(detail, sheetVariant)}>Encargar por WhatsApp</Button>
+      <p className="sheet-hint">Toca la foto para verla completa en pantalla.</p>
       {ficha && (
         <div className="sheet-premium">
           <p className="sheet-premium-title">FICHA TÉCNICA · SERIE PREMIUM</p>
@@ -374,7 +415,7 @@ function Storefront() {
           <div className="cart-qty">
             <button type="button" aria-label="Quitar una unidad" onClick={() => changeQty(line.variant.id, -1)}>−</button>
             <span>{line.quantity}</span>
-            <button type="button" aria-label="Añadir una unidad" disabled={line.quantity >= line.variant.stockQuantity} onClick={() => changeQty(line.variant.id, 1)}>+</button>
+            <button type="button" aria-label="Añadir una unidad" onClick={() => changeQty(line.variant.id, 1)}>+</button>
           </div>
         </div>
         <div className="cart-item-price">

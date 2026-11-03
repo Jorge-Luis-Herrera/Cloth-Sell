@@ -46,9 +46,9 @@ probar('updateProduct manda Content-Type: application/json', async () => {
 });
 
 probar('saveVariant y updateVariant mandan Content-Type: application/json', async () => {
-  await api.saveVariant(token, 'p1', { size: 'M', color: 'Negro', stockQuantity: 1, isActive: true });
+  await api.saveVariant(token, 'p1', { size: 'M', color: 'Negro', isActive: true });
   assert.equal(ultima().headers['Content-Type'], 'application/json');
-  await api.updateVariant(token, 'p1', 'v1', { size: 'M', color: 'Negro', stockQuantity: 2, isActive: true });
+  await api.updateVariant(token, 'p1', 'v1', { size: 'M', color: 'Negro', isActive: true });
   assert.equal(ultima().headers['Content-Type'], 'application/json');
 });
 

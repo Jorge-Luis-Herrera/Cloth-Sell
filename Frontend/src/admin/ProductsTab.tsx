@@ -2,14 +2,13 @@ import { useMemo, useState } from 'react';
 import { api, type Product } from '../api';
 import { Confirm, money, useToast } from './ui';
 
-const stockOf = (p: Product) => p.variants.reduce((n, v) => n + (v.stockQuantity || 0), 0);
 const colorsOf = (p: Product) => [...new Set(p.variants.map((v) => v.color))].slice(0, 5);
 const sizesOf = (p: Product) => [...new Set(p.variants.map((v) => v.size))].sort();
 
 export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dialogOpen }: { token: string; products: Product[]; onChanged: () => Promise<void>; onCreate: () => void; onEdit: (p: Product) => void; dialogOpen: boolean }) {
   const toast = useToast();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'published' | 'drafts' | 'low'>('all');
+  const [filter, setFilter] = useState<'all' | 'published' | 'drafts'>('all');
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +17,6 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
     return products.filter((p) => {
       if (filter === 'published' && !p.published) return false;
       if (filter === 'drafts' && p.published) return false;
-      if (filter === 'low' && stockOf(p) > 3) return false;
       if (!term) return true;
       return `${p.name} ${p.description} ${p.variants.map((v) => `${v.size} ${v.color} ${v.sku ?? ''}`).join(' ')}`.toLowerCase().includes(term);
     });
@@ -53,7 +51,6 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
     all: products.length,
     published: products.filter((p) => p.published).length,
     drafts: products.filter((p) => !p.published).length,
-    low: products.filter((p) => stockOf(p) <= 3).length,
   };
 
   return (
@@ -84,7 +81,6 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
             ['all', 'Todos'],
             ['published', 'Publicados'],
             ['drafts', 'Borradores'],
-            ['low', 'Pocas existencias'],
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" className="adm-pill" aria-pressed={filter === key} onClick={() => setFilter(key)}>
@@ -106,7 +102,6 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
         )}
 
         {visible.map((p) => {
-          const stock = stockOf(p);
           const sizes = sizesOf(p);
           return (
             <article className="adm-card" key={p.id}>
@@ -114,9 +109,6 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
                 {p.images[0] ? <img src={p.images[0].url} alt={p.images[0].altText || p.name} /> : <span className="adm-thumb-empty">J</span>}
                 <span className="adm-thumb-flag" data-on={p.published}>
                   {p.published ? 'Publicado' : 'Borrador'}
-                </span>
-                <span className="adm-thumb-stock" data-low={stock <= 3}>
-                  {stock === 0 ? 'Sin stock' : `${stock} uds`}
                 </span>
               </div>
 
@@ -134,7 +126,7 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
                   </div>
                 )}
                 {sizes.length > 0 && <p className="adm-hint" style={{ marginTop: 6 }}>Tallas: {sizes.join(' · ')}</p>}
-                {p.variants.length === 0 && <p className="adm-hint" style={{ color: 'var(--j-red)', marginTop: 6 }}>Sin tallas: no se puede comprar.</p>}
+                {p.variants.length === 0 && <p className="adm-hint" style={{ marginTop: 6 }}>Todavia no hay variantes.</p>}
 
                 <div className="adm-card-meta">
                   <span className="adm-price">
@@ -170,7 +162,7 @@ export function ProductsTab({ token, products, onChanged, onCreate, onEdit, dial
             <>
               <strong>{pendingDelete.name}</strong>
               <br />
-              {pendingDelete.variants.length} tallas · {stockOf(pendingDelete)} unidades · {pendingDelete.images.length} fotos
+              {pendingDelete.variants.length} variantes · {pendingDelete.images.length} fotos
             </>
           )
         }

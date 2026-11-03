@@ -3,10 +3,11 @@ import { api, type Order, type Product } from '../api';
 import { OrdersTab } from './OrdersTab';
 import { ProductDialog } from './ProductDialog';
 import { ProductsTab } from './ProductsTab';
+import { SessionsTab } from './SessionsTab';
 import { ToastProvider, useToast } from './ui';
 
 const TOKEN_KEY = 'jenny-admin-token';
-type Tab = 'products' | 'orders';
+type Tab = 'products' | 'sessions' | 'orders';
 
 function Login({ onAuthenticated }: { onAuthenticated: (token: string) => void }) {
   const [password, setPassword] = useState('');
@@ -33,9 +34,9 @@ function Login({ onAuthenticated }: { onAuthenticated: (token: string) => void }
     <div className="adm-login-wrap">
       <form className="adm-login" onSubmit={submit}>
         <div className="adm-brand">
-          <span className="adm-mark">J</span>
+          <img className="adm-mark" src="/media/brand/isotypo.jpg" alt="" />
           <div>
-            <small>Jenny</small>
+            <small>JEN STUDIO</small>
           </div>
         </div>
         <h1>Panel de administracion</h1>
@@ -68,6 +69,7 @@ function Panel({ token, onLogout }: { token: string; onLogout: () => void }) {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('products');
   const [products, setProducts] = useState<Product[]>([]);
+  const [sessions, setSessions] = useState<import('../api').CatalogSession[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -75,9 +77,10 @@ function Panel({ token, onLogout }: { token: string; onLogout: () => void }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [p, o] = await Promise.all([api.adminProducts(token), api.adminOrders(token)]);
+      const [p, o, s] = await Promise.all([api.adminProducts(token), api.adminOrders(token), api.adminSessions(token)]);
       setProducts(p);
       setOrders(o);
+      setSessions(s);
     } catch (e) {
       if (e instanceof Error && e.message.includes('401')) {
         onLogout();
@@ -113,16 +116,19 @@ function Panel({ token, onLogout }: { token: string; onLogout: () => void }) {
     <div className="adm">
       <header className="adm-top">
         <div className="adm-brand">
-          <span className="adm-mark">J</span>
+          <img className="adm-mark" src="/media/brand/isotypo.jpg" alt="" />
           <div>
             Panel de administracion
-            <small>Jenny</small>
+            <small>JEN STUDIO</small>
           </div>
         </div>
 
         <nav className="adm-tabs" role="tablist">
           <button type="button" role="tab" className="adm-tab" aria-selected={tab === 'products'} onClick={() => setTab('products')}>
             Catalogo
+          </button>
+          <button type="button" role="tab" className="adm-tab" aria-selected={tab === 'sessions'} onClick={() => setTab('sessions')}>
+            Sesiones
           </button>
           <button type="button" role="tab" className="adm-tab" aria-selected={tab === 'orders'} onClick={() => setTab('orders')}>
             Pedidos
@@ -143,6 +149,8 @@ function Panel({ token, onLogout }: { token: string; onLogout: () => void }) {
       <main className="adm-main">
         {tab === 'products' ? (
           <ProductsTab token={token} products={products} onChanged={refresh} onCreate={openNew} onEdit={openEdit} dialogOpen={dialogOpen} />
+        ) : tab === 'sessions' ? (
+          <SessionsTab token={token} sessions={sessions} onChanged={refresh} />
         ) : (
           <OrdersTab token={token} orders={orders} onChanged={refresh} />
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type PremiumInput, type Product, type ProductImage, type ProductInput } from '../api';
+import { api, type CatalogSession, type PremiumInput, type Product, type ProductImage, type ProductInput } from '../api';
 import { Confirm, useToast } from './ui';
 import { VariantsEditor } from './VariantsEditor';
 
@@ -14,7 +14,7 @@ type EnsayoEdit = { name: string; method: string; result: string };
 
 /** Foto elegida antes de que el producto exista: el endpoint de subida necesita un id de
  *  producto, asi que en el alta se envia en cuanto createProduct devuelve el id. */
-type Pending = { key: string; file: File; preview: string };
+type Pending = { key: string; file: File; preview: string; variantId?: string };
 
 let seq = 0;
 const key = () => `pending-${++seq}`;
@@ -28,6 +28,8 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
   const [description, setDescription] = useState('');
   const [basePrice, setBasePrice] = useState('');
   const [published, setPublished] = useState(false);
+  const [sessionId, setSessionId] = useState('');
+  const [sessions, setSessions] = useState<CatalogSession[]>([]);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<Pending[]>([]);
   const [progress, setProgress] = useState<{ percent: number | null; index: number; total: number } | null>(null);
@@ -55,11 +57,18 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
   const totalPhotos = photos.length + pending.length;
 
   useEffect(() => {
-    if (!product) return;
+    let active = true;
+    api.adminSessions(token).then((items) => { if (active) setSessions(items); }).catch(() => { if (active) setSessions([]); });
+    return () => { active = false; };
+  }, [token]);
+
+  useEffect(() => {
+    if (!product) { setSessionId(''); return; }
     setName(product.name);
     setDescription(product.description ?? '');
     setBasePrice(String(product.basePrice ?? ''));
     setPublished(Boolean(product.published));
+    setSessionId(product.sessionId ?? '');
     setIsPremium(Boolean(product.isPremium));
     setPremiumRank(product.premiumRank != null ? String(product.premiumRank) : '');
     const ficha = product.premium;
@@ -122,7 +131,7 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
         setProgress({ percent: 0, index, total: files.length });
         await api.uploadImage(token, productId, item.file, name.trim() || product?.name || '', (percent) => {
           setProgress({ percent, index, total: files.length });
-        });
+        }, item.variantId);
         discardPending(item.key);
       }
       toast.success(files.length === 1 ? 'Foto subida.' : `${files.length} fotos subidas.`);
@@ -218,10 +227,12 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
         await api.updateProduct(token, product.id, payload);
         // En edicion la foto pendiente se sube ahora que ya sabemos el id.
         await uploadAll(product.id);
+        await api.setProductSession(token, product.id, sessionId || null);
         toast.success('Cambios guardados.');
       } else {
         const created = await api.createProduct(token, payload);
         await uploadAll(created.id);
+        await api.setProductSession(token, created.id, sessionId || null);
         toast.success('Producto creado.');
       }
       await onChanged();
@@ -270,6 +281,14 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
                 <option value="no">Borrador (oculto en la tienda)</option>
                 <option value="yes">Publicado (visible y comprable)</option>
               </select>
+            </div>
+            <div className="adm-field">
+              <label htmlFor="p-session">Sesion</label>
+              <select id="p-session" value={sessionId} onChange={(e) => setSessionId(e.target.value)} disabled={busy}>
+                <option value="">Sin sesion</option>
+                {sessions.map((session) => <option key={session.id} value={session.id}>{session.name}</option>)}
+              </select>
+              <span className="adm-hint">Cada producto pertenece a una sola sesion.</span>
             </div>
           </div>
 
@@ -437,6 +456,10 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
                     <img src={item.preview} alt="Vista previa" />
                     {uploading && index === progress?.index && <span className="adm-img-cover">{progress.percent === null ? 'Subiendo' : `${progress.percent}%`}</span>}
                     <button type="button" onClick={() => discardPending(item.key)} aria-label="Quitar la foto seleccionada" disabled={uploading}>&times;</button>
+                    {product && product.variants.length > 0 && <select className="adm-img-variant" value={item.variantId ?? ''} onChange={(e) => setPending((current) => current.map((photo) => photo.key === item.key ? { ...photo, variantId: e.target.value || undefined } : photo))} disabled={uploading} aria-label="Variante de la foto">
+                      <option value="">General</option>
+                      {product.variants.map((variant) => <option key={variant.id} value={variant.id}>{variant.size} / {variant.color}</option>)}
+                    </select>}
                   </figure>
                 ))}
               </div>

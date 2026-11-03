@@ -1,5 +1,5 @@
-export type Variant = { id: string; size: string; color: string; sku?: string; price: number; priceOverride?: number | null; stockQuantity: number; isActive: boolean };
-export type ProductImage = { id: string; url: string; altText: string };
+export type Variant = { id: string; size: string; color: string; sku?: string; price: number; priceOverride?: number | null; isActive: boolean };
+export type ProductImage = { id: string; url: string; altText: string; variantId?: string | null };
 
 /** Una fibra de la composicion, con su porcentaje. Suman 100. */
 export type PremiumComposition = { fiber: string; percent: number };
@@ -14,14 +14,15 @@ export type PremiumSpec = {
 /** Al escribir solo hace falta mandar lo que se rellena; el backend rellena el resto. */
 export type PremiumInput = Partial<PremiumSpec>;
 
-export type Product = { id: string; slug: string; name: string; description: string; basePrice: number; published: boolean; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumSpec | null; createdAt: string; updatedAt: string; variants: Variant[]; images: ProductImage[] };
+export type CatalogSession = { id: string; slug: string; name: string; description: string; sortOrder: number; visible: boolean; productCount: number; createdAt: string; updatedAt: string };
+export type Product = { id: string; slug: string; name: string; description: string; basePrice: number; published: boolean; sessionId?: string | null; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumSpec | null; createdAt: string; updatedAt: string; variants: Variant[]; images: ProductImage[] };
 export type CartLine = { variant: Variant; product: Product; quantity: number };
 
-export type OrderItem = { name: string; size: string; color: string; unitPrice: number; quantity: number; lineTotal: number };
+export type OrderItem = { name: string; size: string; color: string; session?: string; unitPrice: number; quantity: number; lineTotal: number };
 export type Order = { id: string; status: string; customerName: string; customerPhone: string; deliveryAddress: string; notes: string | null; total: number; createdAt: string; updatedAt: string; items: OrderItem[] };
 
 export type ProductInput = { name: string; description?: string | null; basePrice: number; published: boolean; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumInput | null };
-export type VariantInput = { size: string; color: string; sku?: string | null; priceOverride?: number | null; stockQuantity: number; isActive: boolean };
+export type VariantInput = { size: string; color: string; sku?: string | null; priceOverride?: number | null; isActive: boolean };
 
 /** Estados que acepta el backend. El orden es el del ciclo de vida del pedido. */
 export const ORDER_STATUSES = ['Pending', 'Confirmed', 'Preparing', 'Shipped', 'Delivered', 'Cancelled'] as const;
@@ -41,24 +42,25 @@ export const SUGGESTED_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Única'];
 export const SUGGESTED_COLORS = ['Negro', 'Blanco', 'Beige', 'Gris', 'Azul', 'Rojo', 'Verde', 'Rosa', 'Marrón'];
 
 /**
- * Moneda y locale de la tienda. Viven aqui para que la tienda y el panel no puedan divergir:
- * antes la tienda formateaba en EUR (`es-ES`) y el panel en MXN (`es-MX`), y el mismo producto
- * salia con dos monedas distintas segun donde se mirara.
+ * Moneda y locale de la tienda. Viven aqui para que la tienda y el panel no puedan divergir.
+ * La tienda muestra USD directamente, sin conversion ni tipo de cambio.
  */
-export const STORE_CURRENCY = 'EUR';
-export const STORE_LOCALE = 'es-ES';
+export const STORE_CURRENCY = 'USD';
+export const STORE_LOCALE = 'en-US';
 
 export type ProductPage = { items: Product[]; total: number; page: number; pageSize: number; hasMore?: boolean };
 
 /** Filtros del catalogo publico. El backend pagina y filtra en SQL: filtrar en el navegador
  *  solo применaria a los productos de la pagina actual, no al catalogo entero. */
-export type CatalogQuery = { search?: string; size?: string; color?: string; page?: number; pageSize?: number };
+export type CatalogQuery = { search?: string; size?: string; color?: string; session?: string; tier?: 'normal' | 'premium'; page?: number; pageSize?: number };
 
 const catalogQuery = (q: CatalogQuery = {}) => {
   const params = new URLSearchParams();
   if (q.search?.trim()) params.set('search', q.search.trim());
   if (q.size) params.set('size', q.size);
   if (q.color) params.set('color', q.color);
+  if (q.session) params.set('session', q.session);
+  if (q.tier) params.set('tier', q.tier);
   if (q.page && q.page > 1) params.set('page', String(q.page));
   if (q.pageSize) params.set('page_size', String(q.pageSize));
   const s = params.toString();
@@ -148,6 +150,7 @@ export const api = {
   /** Filtros del catalogo publico. El backend pagina y filtra en SQL: filtrar en el navegador
    *  solo aplicaria a los productos de la pagina actual, no al catalogo entero. */
   products: (query: CatalogQuery = {}) => json(catalogQuery(query)),
+  sessions: () => json('/api/sessions') as Promise<CatalogSession[]>,
   /** Serie premium, ya ordenada por curaduria. Va aparte del catalogo porque la portada la
    *  pinta antes y sin paginar. */
   premium: () => json('/api/premium'),
@@ -155,6 +158,11 @@ export const api = {
   order: (data: unknown) => json('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
 
   adminProducts: (token: string) => json('/api/admin/products', { headers: auth(token) }),
+  adminSessions: (token: string) => json('/api/admin/sessions', { headers: auth(token) }) as Promise<CatalogSession[]>,
+  createSession: (token: string, data: { name: string; description?: string; slug?: string; sortOrder?: number; visible?: boolean }) => json('/api/admin/sessions', { method: 'POST', headers: auth(token), body: JSON.stringify(data) }),
+  updateSession: (token: string, id: string, data: { name: string; description?: string; slug?: string; sortOrder?: number; visible?: boolean }) => json(`/api/admin/sessions/${id}`, { method: 'PUT', headers: auth(token), body: JSON.stringify(data) }),
+  deleteSession: (token: string, id: string) => json(`/api/admin/sessions/${id}`, { method: 'DELETE', headers: auth(token) }),
+  setProductSession: (token: string, productId: string, sessionId: string | null) => json(`/api/admin/products/${productId}/session`, { method: 'PATCH', headers: auth(token), body: JSON.stringify({ sessionId }) }),
   createProduct: (token: string, data: ProductInput) => json('/api/admin/products', { method: 'POST', headers: auth(token), body: JSON.stringify(data) }),
   updateProduct: (token: string, id: string, data: ProductInput) => json(`/api/admin/products/${id}`, { method: 'PUT', headers: auth(token), body: JSON.stringify(data) }),
   deleteProduct: (token: string, id: string) => json(`/api/admin/products/${id}`, { method: 'DELETE', headers: auth(token) }),
@@ -163,10 +171,11 @@ export const api = {
   updateVariant: (token: string, productId: string, variantId: string, data: VariantInput) => json(`/api/admin/products/${productId}/variants/${variantId}`, { method: 'PUT', headers: auth(token), body: JSON.stringify(data) }),
   deleteVariant: (token: string, productId: string, variantId: string) => json(`/api/admin/products/${productId}/variants/${variantId}`, { method: 'DELETE', headers: auth(token) }),
 
-  uploadImage: (token: string, productId: string, file: File, altText = '', onProgress?: ProgressHandler) => {
+  uploadImage: (token: string, productId: string, file: File, altText = '', onProgress?: ProgressHandler, variantId?: string | null) => {
     const form = new FormData();
     form.append('file', file);
     if (altText) form.append('altText', altText);
+    if (variantId) form.append('variantId', variantId);
     return upload(`/api/admin/products/${productId}/images`, token, form, onProgress);
   },
   deleteImage: (token: string, productId: string, imageId: string) => json(`/api/admin/products/${productId}/images/${imageId}`, { method: 'DELETE', headers: auth(token) }),

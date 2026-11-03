@@ -72,7 +72,7 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
         <img className="premium-stage-img" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
 
         <div className="premium-copy" aria-live="polite">
-          <p className="premium-kicker">¿Buscas una prenda que dure?</p>
+          <p className="premium-kicker">¿Buscas una prenda exclusiva?</p>
           <h2 className="premium-title">{producto.name}</h2>
           <p className="premium-sub">{ficha?.tagline || 'Edición limitada'}</p>
         </div>
@@ -86,7 +86,10 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
               key={item.id}
               className="premium-card"
               aria-label={`Ver ${item.name} como prenda destacada`}
-              onClick={() => setActivo(i)}
+              onClick={() => {
+                if (window.matchMedia('(max-width: 820px)').matches) onOpen(item);
+                else setActivo(i);
+              }}
             >
               {item.images[0]
                 ? <img src={item.images[0].url} alt="" loading="lazy" decoding="async" />

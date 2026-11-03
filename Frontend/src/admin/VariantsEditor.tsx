@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SUGGESTED_COLORS, SUGGESTED_SIZES, api, type Variant, type VariantInput } from '../api';
 import { money, useToast } from './ui';
 
@@ -7,7 +7,7 @@ type Draft = VariantInput & { id?: string; key: string };
 let keySeq = 0;
 const key = () => `draft-${++keySeq}`;
 
-const blank = (): Draft => ({ key: key(), size: '', color: '', sku: '', priceOverride: null, stockQuantity: 0, isActive: true });
+const blank = (): Draft => ({ key: key(), size: '', color: '', sku: '', priceOverride: null, isActive: true });
 
 const toDraft = (v: Variant): Draft => ({
   key: `saved-${v.id}`,
@@ -16,7 +16,6 @@ const toDraft = (v: Variant): Draft => ({
   color: v.color,
   sku: v.sku ?? '',
   priceOverride: v.priceOverride ?? null,
-  stockQuantity: v.stockQuantity,
   isActive: v.isActive,
 });
 
@@ -29,10 +28,38 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
   const toast = useToast();
   const [drafts, setDrafts] = useState<Draft[]>(variants.map(toDraft));
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(['S', 'M', 'L']);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
+  useEffect(() => {
+    setDrafts(variants.map(toDraft));
+  }, [variants]);
 
   const replace = (key: string, patch: Partial<Draft>) => setDrafts((d) => d.map((row) => (row.key === key ? { ...row, ...patch } : row)));
 
   const add = () => setDrafts((d) => [...d, blank()]);
+
+  const toggle = (value: string, selected: string[], setSelected: (values: string[]) => void) => {
+    setSelected(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
+  };
+
+  const generate = () => {
+    if (selectedSizes.length === 0 || selectedColors.length === 0) {
+      toast.error('Selecciona al menos una talla y un color.');
+      return;
+    }
+    setDrafts((current) => {
+      const existing = new Set(current.map((row) => `${row.size.trim().toLowerCase()}\u0000${row.color.trim().toLowerCase()}`));
+      const generated = selectedSizes.flatMap((size) => selectedColors.flatMap((color) => {
+        const combination = `${size.toLowerCase()}\u0000${color.toLowerCase()}`;
+        if (existing.has(combination)) return [];
+        existing.add(combination);
+        return [{ ...blank(), size, color }];
+      }));
+      return [...current, ...generated];
+    });
+    toast.success('Combinaciones añadidas. Revisa las filas y pulsa Guardar.');
+  };
 
   const remove = async (row: Draft) => {
     if (!row.id) {
@@ -63,7 +90,6 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
       color: row.color.trim(),
       sku: row.sku?.trim() || null,
       priceOverride: row.priceOverride === null || Number.isNaN(row.priceOverride) ? null : Number(row.priceOverride),
-      stockQuantity: Number(row.stockQuantity) || 0,
       isActive: row.isActive,
     };
     try {
@@ -78,19 +104,85 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
     }
   };
 
-  const totalStock = drafts.reduce((sum, d) => sum + (Number(d.stockQuantity) || 0), 0);
+  const saveNew = async () => {
+    const nuevos = drafts.filter((row) => !row.id);
+    if (nuevos.length === 0) {
+      toast.error('No hay variantes nuevas para guardar.');
+      return;
+    }
+    if (nuevos.some((row) => !row.size.trim() || !row.color.trim())) {
+      toast.error('Completa la talla y el color de todas las variantes nuevas.');
+      return;
+    }
+    setBusyId('bulk');
+    let guardadas = 0;
+    try {
+      for (const row of nuevos) {
+        const result = await api.saveVariant(token, productId, {
+          size: row.size.trim(),
+          color: row.color.trim(),
+          sku: row.sku?.trim() || null,
+          priceOverride: row.priceOverride === null || Number.isNaN(row.priceOverride) ? null : Number(row.priceOverride),
+          isActive: row.isActive,
+        }) as { id?: string } | null;
+        if (result?.id) {
+          setDrafts((current) => current.map((item) => item.key === row.key ? { ...item, id: result.id, key: `saved-${result.id}` } : item));
+        }
+        guardadas += 1;
+      }
+      await onChanged();
+      toast.success(`${guardadas} ${guardadas === 1 ? 'variante guardada' : 'variantes guardadas'}.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : `Se guardaron ${guardadas} variantes; revisa las restantes.`);
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <section className="adm-variants">
       <header className="adm-variants-head">
         <div>
           <h3>Tallas y colores</h3>
-          <p className="adm-hint">Sin tallas, el producto no se puede comprar.</p>
+          <p className="adm-hint">Genera combinaciones y revisa sus precios antes de guardarlas.</p>
         </div>
         <button type="button" className="adm-btn adm-btn-sm" onClick={add}>
-          + Añadir talla
+          + Añadir variante
         </button>
       </header>
+
+      <div className="adm-variant-picker">
+        <fieldset>
+          <legend>Tallas</legend>
+          <div className="adm-checks">
+            {['S', 'M', 'L'].map((size) => (
+              <label key={size}>
+                <input type="checkbox" checked={selectedSizes.includes(size)} onChange={() => toggle(size, selectedSizes, setSelectedSizes)} />
+                {size}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Colores</legend>
+          <div className="adm-checks">
+            {SUGGESTED_COLORS.map((color) => (
+              <label key={color}>
+                <input type="checkbox" checked={selectedColors.includes(color)} onChange={() => toggle(color, selectedColors, setSelectedColors)} />
+                {color}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <button type="button" className="adm-btn" onClick={generate} disabled={busyId !== null}>
+            Generar {selectedSizes.length * selectedColors.length} combinaciones
+          </button>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={() => void saveNew()} disabled={busyId !== null || !drafts.some((row) => !row.id)}>
+            Guardar nuevas ({drafts.filter((row) => !row.id).length})
+          </button>
+        </div>
+      </div>
 
       {drafts.length === 0 && (
         <p className="adm-hint" style={{ padding: '18px 16px' }}>
@@ -125,18 +217,6 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
             />
           </div>
           <div>
-            <label className="adm-hint" htmlFor={`stock-${index}`}>
-              Existencias
-            </label>
-            <input
-              id={`stock-${index}`}
-              type="number"
-              min={0}
-              value={row.stockQuantity}
-              onChange={(e) => replace(row.key, { stockQuantity: Number(e.target.value) })}
-            />
-          </div>
-          <div>
             <label className="adm-hint" htmlFor={`price-${index}`}>
               Precio extra
             </label>
@@ -151,7 +231,7 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
             />
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" className="adm-btn adm-btn-sm adm-btn-primary" onClick={() => save(row)} disabled={busyId === (row.id ?? 'new')}>
+            <button type="button" className="adm-btn adm-btn-sm adm-btn-primary" onClick={() => save(row)} disabled={busyId !== null || busyId === (row.id ?? 'new')}>
               Guardar
             </button>
             <button type="button" className="adm-btn adm-btn-sm" onClick={() => remove(row)} disabled={busyId === row.id}>
@@ -163,7 +243,7 @@ export function VariantsEditor({ token, productId, productName, variants, onChan
 
       <footer className="adm-vfoot">
         <span>
-          {drafts.length} {drafts.length === 1 ? 'talla' : 'tallas'} · {totalStock} unidades en total
+          {drafts.length} {drafts.length === 1 ? 'variante' : 'variantes'}
         </span>
         {drafts.some((d) => Number(d.priceOverride) > 0) && <span>Con precio extra: {money(Math.max(...drafts.map((d) => Number(d.priceOverride) || 0)))}</span>}
       </footer>

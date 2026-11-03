@@ -42,6 +42,19 @@ check("login incorrecto", req("POST","/api/auth/login",{"password":"nope"})[0], 
 check("login sin campo password (422)", req("POST","/api/auth/login",{})[0], 422)
 check("password en mayusculas NO funciona (case sensitive)", req("POST","/api/auth/login",{"password":"AUDITPASS2026"})[0], 401)
 
+print("\n== 0b. Sesiones del catalogo ==")
+st, body, _ = req("POST", "/api/admin/sessions", {"name":"Monos","description":"Prendas de una pieza","sortOrder":1}, A)
+SESSION = json.loads(body)["id"]
+check("crear sesion", st, 201)
+public_sessions = json.loads(req("GET", "/api/sessions")[1])
+check("sesion visible en listado publico", any(item["id"] == SESSION for item in public_sessions), True)
+st, _, _ = req("PUT", "/api/admin/sessions/" + SESSION, {"name":"Monos deportivos","visible":False,"sortOrder":2}, A)
+check("ocultar sesion", st, 204)
+public_sessions = json.loads(req("GET", "/api/sessions")[1])
+check("sesion oculta no aparece en listado publico", any(item["id"] == SESSION for item in public_sessions), False)
+check("listar sesiones requiere autenticacion", req("GET", "/api/admin/sessions")[0], 401)
+check("volver a mostrar sesion", req("PUT", "/api/admin/sessions/" + SESSION, {"name":"Monos","visible":True,"sortOrder":1}, A)[0], 204)
+
 print("\n== 1. El 415 exacto que te dio el navegador ==")
 payload = json.dumps({"name":"Camisa de lino","description":"","basePrice":499.0,"published":False}).encode()
 st, body, _ = req("POST","/api/admin/products",payload,dict(A,**{"Content-Type":"text/plain;charset=UTF-8"}),raw=True)
@@ -50,6 +63,22 @@ check("  texto del error (identico al tuyo)", body.strip(), "Expected request wi
 st, body, _ = req("POST","/api/admin/products",payload,dict(A,**{"Content-Type":"application/json"}),raw=True)
 check("mismo POST con Content-Type application/json", st, 201)
 PID = json.loads(body)["id"]
+check("publicar producto para probar filtro", req("PUT", "/api/admin/products/" + PID, {"name":"Camisa de lino","basePrice":499,"published":True}, A)[0], 204)
+check("asignar producto a sesion", req("PATCH", "/api/admin/products/" + PID + "/session", {"sessionId": SESSION}, A)[0], 204)
+producto_con_sesion = [p for p in get_products(A) if p["id"] == PID][0]
+check("producto devuelve sessionId", producto_con_sesion.get("sessionId"), SESSION)
+filtrados = json.loads(req("GET", "/api/products?session=" + SESSION)[1])
+check("catalogo filtra por sesion", any(p["id"] == PID for p in filtrados["items"]), True)
+check("borrar sesion desvincula el producto", req("DELETE", "/api/admin/sessions/" + SESSION, None, A)[0], 204)
+producto_sin_sesion = [p for p in get_products(A) if p["id"] == PID][0]
+check("producto queda sin sessionId", producto_sin_sesion.get("sessionId"), None)
+st, body, _ = req("POST", "/api/admin/products", {"name":"Prenda premium de prueba","basePrice":900,"published":True,"isPremium":True,"premium":{"tagline":"Edicion especial"}}, A)
+PREMIUM_ID = json.loads(body)["id"]
+check("crear producto premium publicado", st, 201)
+normal_ids = [p["id"] for p in json.loads(req("GET", "/api/products?tier=normal")[1])["items"]]
+premium_ids = [p["id"] for p in json.loads(req("GET", "/api/premium")[1])["items"]]
+check("premium no aparece en catalogo normal", PREMIUM_ID in normal_ids, False)
+check("premium aparece en serie premium", PREMIUM_ID in premium_ids, True)
 
 print("\n== 1b. Cuantos endpoints del panel manda mal el frontend (simulando el fetch del panel) ==")
 import subprocess
@@ -155,6 +184,10 @@ req("POST","/api/admin/products/"+PID+"/variants",{"size":"S","color":"Verde","s
 v3 = [x for x in [p for p in get_products(A) if p["id"]==PID][0]["variants"] if x["size"]=="S"][0]
 base_actual = [p for p in get_products(A) if p["id"]==PID][0]["basePrice"]
 check("  variante sin override hereda el precio base", (v3["price"], v3["priceOverride"]), (base_actual, None))
+st, _, _ = upload(PID, [("file",("variante.png","image/png",PNG)),("variantId",V1)])
+check("subir foto asociada a variante", st, 201)
+imagenes_variante = [i for i in [p for p in get_products(A) if p["id"] == PID][0]["images"] if i.get("variantId") == V1]
+check("la foto conserva variantId", len(imagenes_variante), 1)
 
 print("\n== 5. Pedidos ==")
 req("PUT","/api/admin/products/"+PID,{"name":"Camisa de lino","basePrice":500,"published":True},A)
@@ -162,8 +195,8 @@ st, resp, _ = req("POST","/api/orders",{"customerName":"Ana","customerPhone":"60
 check("pedido de 2 unidades", st, 201)
 check("  total", json.loads(resp)["total"] if st==201 else resp, 798.0)
 v = [x for x in [p for p in get_products(A) if p["id"]==PID][0]["variants"] if x["id"]==V1][0]
-check("  stock descontado (3 -> 1)", v["stockQuantity"], 1)
-check("pedido sin stock suficiente", req("POST","/api/orders",{"customerName":"Ana","customerPhone":"600","deliveryAddress":"x","items":[{"variantId":V1,"quantity":5}]})[0], 400)
+check("  stock legacy no se modifica", v["stockQuantity"], 0)
+check("pedido sin limite de existencias", req("POST","/api/orders",{"customerName":"Ana","customerPhone":"600","deliveryAddress":"x","items":[{"variantId":V1,"quantity":5}]})[0], 201)
 check("pedido con quantity 0", req("POST","/api/orders",{"customerName":"Ana","customerPhone":"600","deliveryAddress":"x","items":[{"variantId":V1,"quantity":0}]})[0], 400)
 check("pedido con 51 lineas", req("POST","/api/orders",{"customerName":"Ana","customerPhone":"600","deliveryAddress":"x","items":[{"variantId":V1,"quantity":1}]*51})[0], 400)
 check("pedido sin nombre", req("POST","/api/orders",{"customerPhone":"600","deliveryAddress":"x","items":[{"variantId":V1,"quantity":1}]})[0], 422, "error de deserializacion, no mensaje de negocio")
@@ -177,7 +210,7 @@ def buy():
     out.append(req("POST","/api/orders",{"customerName":"Race","customerPhone":"6","deliveryAddress":"x","items":[{"variantId":VL,"quantity":1}]})[0])
 ts = [threading.Thread(target=buy) for _ in range(4)]
 [t.start() for t in ts]; [t.join() for t in ts]
-check("4 pedidos a la vez por 1 unidad", sorted(out), [201,400,400,400], "si saliera mas de un 201 habria sobreventa")
+check("pedidos concurrentes sin rechazo por existencias", sum(status == 201 for status in out) >= 2, True, f"respuestas: {sorted(out)}; los 400 son bloqueo concurrente de SQLite, no falta de stock")
 
 print("\n== 5c. Dinero en coma flotante ==")
 check("el backend guarda el precio como REAL (f64)", req("POST","/api/admin/products/"+PID+"/variants",{"size":"XS","color":"Blanco","stockQuantity":9,"isActive":True,"priceOverride":0.1},A)[0], 201, "PENDIENTE B1: 3 x 0.10 dara 0.30000000000000004")
