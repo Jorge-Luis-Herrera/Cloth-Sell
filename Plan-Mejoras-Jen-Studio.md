@@ -54,9 +54,9 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Crear variables CSS para chocolate `#62402D`.
 - [x] Crear variable para beige `#EBDCCD`.
 - [x] Crear variable para caramelo `#A77E5D`.
-- [ ] Reemplazar colores antiguos del storefront.
-- [ ] Reemplazar colores antiguos del panel.
-- [ ] Mantener contraste suficiente para textos y botones.
+- [x] Reemplazar colores antiguos del storefront.
+- [x] Reemplazar colores antiguos del panel.
+- [x] Mantener contraste suficiente para textos y botones.
 
 ### Tipografia
 
