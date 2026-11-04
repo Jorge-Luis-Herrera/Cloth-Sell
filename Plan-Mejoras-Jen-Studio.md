@@ -144,7 +144,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Añadir botonera o lista de sesiones encima del catalogo.
 - [x] Añadir filtro por sesion.
 - [x] Mantener busqueda junto con el filtro de sesion.
-- [ ] Mostrar estado vacio cuando una sesion no tenga productos.
+- [x] Mostrar estado vacio cuando una sesion no tenga productos.
 - [x] Mantener el catalogo sin productos premium.
 
 **Validacion:** crear `Monos`, añadir tres productos y comprobar que solo aparecen al seleccionar esa sesion.
