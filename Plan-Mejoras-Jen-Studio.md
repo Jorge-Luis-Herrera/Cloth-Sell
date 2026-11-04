@@ -154,7 +154,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Cambiar la consulta normal para pedir solo productos no premium.
 - [x] Comprobar que un producto premium nunca aparece en el catalogo normal.
 - [x] Mantener la consulta independiente de productos premium.
-- [ ] Revisar productos existentes que pudieran aparecer duplicados.
+- [x] Revisar productos existentes que pudieran aparecer duplicados.
 - [x] Cambiar la primera frase premium a `¿Buscas una prenda exclusiva?`.
 - [x] En movil eliminar el boton visible `Ver ficha`.
 - [x] Hacer que tocar cualquier producto premium abra directamente la ficha.
@@ -246,14 +246,20 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 ## Bloque 11 — Migracion de datos
 
-- [ ] Ejecutar migraciones sobre una copia de la base actual.
+- [x] Ejecutar migraciones sobre una copia de la base actual.
 - [ ] Asociar productos existentes a sesiones.
-- [ ] Revisar productos premium actuales.
-- [ ] Revisar imagenes actuales sin variante.
-- [ ] Confirmar que los pedidos historicos siguen visibles.
-- [ ] Confirmar que las URLs de imagen siguen funcionando.
-- [ ] Ejecutar migracion sobre una base de prueba limpia.
-- [ ] Preparar procedimiento de rollback.
+- [x] Revisar productos premium actuales.
+- [x] Revisar imagenes actuales sin variante.
+- [x] Confirmar que los pedidos historicos siguen visibles.
+- [x] Confirmar que las URLs de imagen siguen funcionando.
+- [x] Ejecutar migracion sobre una base de prueba limpia.
+- [x] Preparar procedimiento de rollback.
+
+**Procedimiento de rollback (desplegado):**
+1. Copia previa: `cp jenny.db jenny.db.bak-$(date +%F)` (con el backend parado).
+2. Si una migracion rompe datos, detener el binario y restaurar el backup: `cp jenny.db.bak-... jenny.db`.
+3. El binario anterior sigue en `Backend-Rust/target/release/`: arrancar de nuevo sirve el frontend antiguo con la base restaurada.
+4. Nota: los ficheros de `/uploads` llevan acentos en el nombre (p. ej. `demo-capote-séville-a.jpg`); los navegadores los codifican al pedirlos y las 12 URLs responden 200 comprobadas. En producción, si se copian estos ficheros a mano, usar `rsync --checksum` en vez de `scp` a mano para no romper el nombre.
 
 **Validacion:** comparar conteo de productos, variantes, imagenes y pedidos antes y despues.
 
