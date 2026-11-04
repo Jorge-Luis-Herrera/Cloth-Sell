@@ -265,17 +265,17 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 ## Bloque 12 — Pruebas finales y despliegue
 
-- [ ] Ejecutar pruebas de API.
-- [ ] Ejecutar `npm run test:api`.
-- [ ] Ejecutar `npm run build`.
-- [ ] Probar creacion y edicion desde el panel.
-- [ ] Probar sesiones y filtros.
-- [ ] Probar premium y catalogo normal.
-- [ ] Probar pedidos y WhatsApp.
-- [ ] Probar carrusel en movil y escritorio.
-- [ ] Revisar consola del navegador.
-- [ ] Revisar respuestas de API y errores HTTP.
-- [ ] Crear backup previo al despliegue.
+- [x] Ejecutar pruebas de API.
+- [x] Ejecutar `npm run test:api`.
+- [x] Ejecutar `npm run build`.
+- [x] Probar creacion y edicion desde el panel.
+- [x] Probar sesiones y filtros.
+- [x] Probar premium y catalogo normal.
+- [ ] Probar pedidos y WhatsApp (en dispositivo real).
+- [ ] Probar carrusel en movil y escritorio (revision visual del usuario).
+- [ ] Revisar consola del navegador (revision visual del usuario).
+- [x] Revisar respuestas de API y errores HTTP.
+- [x] Crear backup previo al despliegue.
 - [ ] Desplegar backend y frontend.
 - [ ] Verificar el entorno publicado.
 - [ ] Confirmar que las fotos se sirven por HTTPS.
@@ -283,7 +283,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 ## Estado actual
 
 - [x] Planning creado.
-- [ ] Decisiones previas confirmadas.
+- [x] Decisiones previas confirmadas.
 - [x] Bloque 0 — Preparacion y seguridad.
 - [x] Bloque 1 — Identidad visual JEN STUDIO.
 - [x] Bloque 2 — Eliminar dependencia de stock.
@@ -296,4 +296,4 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Bloque 9 — Moneda.
 - [x] Bloque 10 — Responsive y acabado.
 - [x] Bloque 11 — Migracion de datos.
-- [ ] Bloque 12 — Pruebas y despliegue.
+- [ ] Bloque 12 — Pruebas y despliegue. (Restan: revision visual del usuario en dispositivo, push a main para desplegar y verificacion del entorno publicado.)
