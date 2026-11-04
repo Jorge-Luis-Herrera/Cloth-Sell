@@ -258,7 +258,7 @@
 .cart-item-info>strong{font-size:14px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
 .cart-item-info>small{color:var(--j-muted);font-size:12px}
 .cart-drawer .cart-qty{display:inline-flex;align-items:center;width:max-content;margin-top:6px;border:1px solid var(--j-line);border-radius:999px;overflow:hidden}
-.cart-drawer .cart-qty button{margin:0;width:26px;height:26px;padding:0;border:none;background:#fff;color:var(--j-chocolate);font-size:15px;line-height:1;cursor:pointer;transition:.12s}
+.cart-drawer .cart-qty button{margin:0;width:32px;height:32px;padding:0;border:none;background:#fff;color:var(--j-chocolate);font-size:15px;line-height:1;cursor:pointer;transition:.12s}
 .cart-drawer .cart-qty button:hover:not(:disabled){background:var(--j-tint)}
 .cart-drawer .cart-qty button:disabled{opacity:.35;cursor:not-allowed}
 .cart-drawer .cart-qty span{min-width:24px;text-align:center;font-size:13px;font-weight:600}
@@ -463,3 +463,5 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 /* CTA con tipografia de marca: mayusculas espaciadas como el logo. */
 .pcard-add,.cart-drawer .cart-cta{font-family:var(--j-display);font-weight:600;letter-spacing:.09em;text-transform:uppercase}
 .pcard-hint{font-family:var(--j-display);letter-spacing:.08em;text-transform:uppercase}
+/* Tactil: sin destello gris al tocar (Android) y area de toque comoda. */
+button,a{-webkit-tap-highlight-color:rgba(98,64,45,.12)}

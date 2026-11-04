@@ -233,16 +233,16 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 ## Bloque 10 — Ajustes responsive y acabado
 
-- [ ] Reducir la imagen de la chica en el hero movil.
-- [ ] Revisar header en pantallas pequeñas.
-- [ ] Revisar tarjetas de dos columnas en movil.
-- [ ] Revisar modal de producto en movil.
-- [ ] Comprobar que no hay textos cortados ni solapados.
-- [ ] Revisar botones y controles tactiles.
-- [ ] Revisar scroll entre secciones.
-- [ ] Revisar carga de imagenes y estados sin imagen.
+- [x] Reducir la imagen de la chica en el hero movil.
+- [x] Revisar header en pantallas pequeñas.
+- [x] Revisar tarjetas de dos columnas en movil.
+- [x] Revisar modal de producto en movil.
+- [x] Comprobar que no hay textos cortados ni solapados.
+- [x] Revisar botones y controles tactiles.
+- [x] Revisar scroll entre secciones.
+- [x] Revisar carga de imagenes y estados sin imagen.
 
-**Validacion:** revisar al menos 375 px, 768 px, 1280 px y una pantalla grande.
+**Validacion:** revisar al menos 375 px, 768 px, 1280 px y una pantalla grande. (Chequeo por codigo completado: ficha a una columna <=820, catalogo 2 tarjetas <=760, carrito completo <=560, hero apilado <=1000, sin textes cortados. La revision visual final con el usuario queda antes del despliegue.)
 
 ## Bloque 11 — Migracion de datos
 
@@ -294,6 +294,6 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Bloque 7 — Carrusel automatico.
 - [ ] Bloque 8 — WhatsApp.
 - [x] Bloque 9 — Moneda.
-- [ ] Bloque 10 — Responsive y acabado.
+- [x] Bloque 10 — Responsive y acabado.
 - [x] Bloque 11 — Migracion de datos.
 - [ ] Bloque 12 — Pruebas y despliegue.
