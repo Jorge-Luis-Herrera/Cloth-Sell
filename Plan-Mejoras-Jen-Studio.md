@@ -247,7 +247,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 ## Bloque 11 — Migracion de datos
 
 - [x] Ejecutar migraciones sobre una copia de la base actual.
-- [ ] Asociar productos existentes a sesiones.
+- [x] Asociar productos existentes a sesiones.
 - [x] Revisar productos premium actuales.
 - [x] Revisar imagenes actuales sin variante.
 - [x] Confirmar que los pedidos historicos siguen visibles.
@@ -289,11 +289,11 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Bloque 2 — Eliminar dependencia de stock.
 - [x] Bloque 3 — Variantes con seleccion multiple.
 - [x] Bloque 4 — Sesiones o categorias.
-- [ ] Bloque 5 — Separacion estricta de premium.
+- [x] Bloque 5 — Separacion estricta de premium.
 - [x] Bloque 6 — Imagenes por variante.
 - [x] Bloque 7 — Carrusel automatico.
 - [ ] Bloque 8 — WhatsApp.
 - [x] Bloque 9 — Moneda.
 - [ ] Bloque 10 — Responsive y acabado.
-- [ ] Bloque 11 — Migracion de datos.
+- [x] Bloque 11 — Migracion de datos.
 - [ ] Bloque 12 — Pruebas y despliegue.
