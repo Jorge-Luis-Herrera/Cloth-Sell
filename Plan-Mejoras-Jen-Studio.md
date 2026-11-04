@@ -66,11 +66,11 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 ### Fondos y cierre de la pagina
 
-- [ ] Unificar el fondo entre hero, premium, catalogo y seccion final.
-- [ ] Eliminar separaciones que produzcan cuadrados visuales.
-- [ ] Rediseñar la seccion final con la paleta JEN STUDIO.
-- [ ] Sustituir el texto final por: `No se trata solo de como te ves, sino de como avanzas, creces y descubres hacia donde quieres llegar.`
-- [ ] Añadir el corazon marron de forma coherente con la identidad visual.
+- [x] Unificar el fondo entre hero, premium, catalogo y seccion final.
+- [x] Eliminar separaciones que produzcan cuadrados visuales.
+- [x] Rediseñar la seccion final con la paleta JEN STUDIO.
+- [x] Sustituir el texto final por: `No se trata solo de como te ves, sino de como avanzas, creces y descubres hacia donde quieres llegar.`
+- [x] Añadir el corazon marron de forma coherente con la identidad visual.
 
 **Validacion:** revisar capturas en movil y escritorio; comprobar contraste y ausencia de bloques bruscos.
 
@@ -81,7 +81,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Localizar validaciones de `stock_quantity` al crear pedidos.
 - [x] Eliminar el bloqueo de pedidos por falta de existencias.
 - [x] Eliminar la resta automatica de existencias.
-- [ ] Mantener los snapshots de los pedidos existentes.
+- [x] Mantener los snapshots de los pedidos existentes.
 - [x] Mantener las columnas antiguas de stock solo como compatibilidad de datos.
 - [x] Evitar que el API nuevo dependa de stock para publicar un producto.
 
@@ -90,7 +90,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Eliminar estados `disponible`, `sin stock` y botones desactivados por stock.
 - [x] Eliminar limites de cantidad basados en `stockQuantity`.
 - [x] Eliminar mensajes de error relacionados con falta de stock.
-- [ ] Cambiar el flujo de compra a flujo de encargo.
+- [x] Cambiar el flujo de compra a flujo de encargo.
 
 ### Panel
 
@@ -114,7 +114,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Mantener SKU opcional si sigue siendo necesario.
 - [x] Guardar todas las variantes nuevas con un solo boton.
 - [x] Permitir editar o eliminar combinaciones generadas.
-- [ ] Mostrar errores concretos si una combinacion no se puede guardar.
+- [x] Mostrar errores concretos si una combinacion no se puede guardar.
 
 **Validacion:** seleccionar 3 colores y 3 tallas; comprobar que se generan 9 variantes y que no aparecen duplicadas.
 
@@ -124,7 +124,7 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 - [x] Crear migracion para tabla de sesiones.
 - [x] Crear migracion para relacion producto-sesion.
-- [ ] Definir slug, nombre, descripcion, orden y estado visible.
+- [x] Definir slug, nombre, descripcion, orden y estado visible.
 - [x] Crear endpoint publico para listar sesiones visibles.
 - [x] Crear endpoints protegidos para crear, editar y eliminar sesiones.
 - [x] Definir comportamiento al eliminar una sesion con productos.
@@ -143,22 +143,22 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 - [x] Añadir botonera o lista de sesiones encima del catalogo.
 - [x] Añadir filtro por sesion.
-- [ ] Mantener busqueda junto con el filtro de sesion.
+- [x] Mantener busqueda junto con el filtro de sesion.
 - [ ] Mostrar estado vacio cuando una sesion no tenga productos.
-- [ ] Mantener el catalogo sin productos premium.
+- [x] Mantener el catalogo sin productos premium.
 
 **Validacion:** crear `Monos`, añadir tres productos y comprobar que solo aparecen al seleccionar esa sesion.
 
 ## Bloque 5 — Separacion estricta de premium
 
-- [ ] Cambiar la consulta normal para pedir solo productos no premium.
+- [x] Cambiar la consulta normal para pedir solo productos no premium.
 - [x] Comprobar que un producto premium nunca aparece en el catalogo normal.
-- [ ] Mantener la consulta independiente de productos premium.
+- [x] Mantener la consulta independiente de productos premium.
 - [ ] Revisar productos existentes que pudieran aparecer duplicados.
 - [x] Cambiar la primera frase premium a `¿Buscas una prenda exclusiva?`.
 - [x] En movil eliminar el boton visible `Ver ficha`.
 - [x] Hacer que tocar cualquier producto premium abra directamente la ficha.
-- [ ] Mantener el boton o interaccion de ficha en escritorio si sigue siendo util.
+- [x] Mantener el boton o interaccion de ficha en escritorio si sigue siendo util.
 - [x] Aplicar el difuminado inferior a las imagenes premium.
 
 **Validacion:** marcar un producto como premium y comprobar que desaparece del catalogo normal sin desaparecer de premium.
@@ -176,58 +176,58 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Mostrar selector de variante al subir imagenes.
 - [x] Permitir imagenes generales del producto.
 - [x] Permitir imagenes especificas por color/talla.
-- [ ] Ordenar imagenes dentro de cada grupo.
-- [ ] Elegir portada general o portada de variante.
+- [x] Ordenar imagenes dentro de cada grupo.
+- [x] Elegir portada general o portada de variante.
 - [x] Mantener eliminacion y texto alternativo.
 
 ### Tienda
 
 - [x] Cambiar imagen principal al seleccionar variante.
 - [x] Usar galeria general como respaldo si la variante no tiene imagenes.
-- [ ] Evitar parpadeos o saltos de altura al cambiar imagen.
+- [x] Evitar parpadeos o saltos de altura al cambiar imagen.
 
 **Validacion:** crear dos colores con galerias diferentes y comprobar que cada color muestra sus imagenes.
 
 ## Bloque 7 — Carrusel automatico y ficha deslizable
 
 - [x] Crear componente de galeria reutilizable.
-- [ ] Avanzar automaticamente cada 3 segundos.
-- [ ] Pausar al tocar, enfocar o interactuar.
-- [ ] Reanudar solo cuando corresponda.
+- [x] Avanzar automaticamente cada 3 segundos.
+- [x] Pausar al tocar, enfocar o interactuar.
+- [x] Reanudar solo cuando corresponda.
 - [x] Añadir indicadores de posicion.
 - [x] Añadir navegacion lateral en escritorio.
 - [x] Añadir gestos de deslizamiento en movil.
 - [x] Permitir recorrer todas las imagenes dentro de la ficha.
 - [x] Mantener lightbox o visor ampliado.
 - [x] Cerrar correctamente con boton, fondo y tecla Escape.
-- [ ] Respetar `prefers-reduced-motion`.
+- [x] Respetar `prefers-reduced-motion`.
 
 **Validacion:** comprobar avance automatico, swipe movil, flechas de escritorio y apertura de todas las imagenes.
 
 ## Bloque 8 — Encargos directos por WhatsApp
 
-- [ ] Revisar el repositorio de Pizzeria los Herrera cuando se reciba el enlace.
-- [ ] Comparar su generacion de mensajes, apertura de WhatsApp y fallback.
-- [ ] Definir numero de WhatsApp configurable.
-- [ ] Crear mensaje de encargo de ropa.
-- [ ] Incluir producto, sesion, variante, color, talla, cantidad y precio.
-- [ ] Incluir nombre, telefono, direccion y notas.
-- [ ] Abrir WhatsApp con el mensaje preparado dentro del gesto del usuario.
-- [ ] Mantener alternativa de copiar el mensaje.
-- [ ] Decidir si el encargo crea registro interno antes o despues de abrir WhatsApp.
-- [ ] Eliminar errores derivados de stock.
-- [ ] Mostrar confirmacion clara de que el encargo fue preparado.
+- [x] Revisar el repositorio de Pizzeria los Herrera cuando se reciba el enlace.
+- [x] Comparar su generacion de mensajes, apertura de WhatsApp y fallback.
+- [x] Definir numero de WhatsApp configurable.
+- [x] Crear mensaje de encargo de ropa.
+- [x] Incluir producto, sesion, variante, color, talla, cantidad y precio.
+- [x] Incluir nombre, telefono, direccion y notas.
+- [x] Abrir WhatsApp con el mensaje preparado dentro del gesto del usuario.
+- [x] Mantener alternativa de copiar el mensaje.
+- [x] Decidir si el encargo crea registro interno antes o despues de abrir WhatsApp.
+- [x] Eliminar errores derivados de stock.
+- [x] Mostrar confirmacion clara de que el encargo fue preparado.
 
 **Validacion:** probar Android, iPhone, escritorio con WhatsApp Web y navegador sin WhatsApp instalado.
 
 ## Bloque 9 — Moneda y precios
 
-- [ ] Confirmar si se muestra EUR, USD o ambas.
-- [ ] Si se muestran ambas, definir fuente y frecuencia del tipo de cambio.
-- [ ] Centralizar formato de moneda.
-- [ ] Aplicar el formato en tarjetas, ficha, carrito, premium, panel y WhatsApp.
-- [ ] Evitar diferencias entre precio base y precio de variante.
-- [ ] Revisar pedidos historicos para no cambiar sus importes.
+- [x] Confirmar si se muestra EUR, USD o ambas. (Decidido en decisiones previas: USD solamente, sin tipo de cambio.)
+- [x] Si se muestran ambas, definir fuente y frecuencia del tipo de cambio. (No aplica: USD directo.)
+- [x] Centralizar formato de moneda.
+- [x] Aplicar el formato en tarjetas, ficha, carrito, premium, panel y WhatsApp.
+- [x] Evitar diferencias entre precio base y precio de variante.
+- [x] Revisar pedidos historicos para no cambiar sus importes.
 
 **Validacion:** comprobar un mismo precio en tarjeta, ficha, carrito, pedido, panel y mensaje de WhatsApp.
 
@@ -279,15 +279,15 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Planning creado.
 - [ ] Decisiones previas confirmadas.
 - [x] Bloque 0 — Preparacion y seguridad.
-- [ ] Bloque 1 — Identidad visual JEN STUDIO.
+- [x] Bloque 1 — Identidad visual JEN STUDIO.
 - [x] Bloque 2 — Eliminar dependencia de stock.
-- [ ] Bloque 3 — Variantes con seleccion multiple.
+- [x] Bloque 3 — Variantes con seleccion multiple.
 - [x] Bloque 4 — Sesiones o categorias.
 - [ ] Bloque 5 — Separacion estricta de premium.
-- [ ] Bloque 6 — Imagenes por variante.
-- [ ] Bloque 7 — Carrusel automatico.
+- [x] Bloque 6 — Imagenes por variante.
+- [x] Bloque 7 — Carrusel automatico.
 - [ ] Bloque 8 — WhatsApp.
-- [ ] Bloque 9 — Moneda.
+- [x] Bloque 9 — Moneda.
 - [ ] Bloque 10 — Responsive y acabado.
 - [ ] Bloque 11 — Migracion de datos.
 - [ ] Bloque 12 — Pruebas y despliegue.
