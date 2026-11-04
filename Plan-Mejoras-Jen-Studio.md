@@ -60,9 +60,9 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 
 ### Tipografia
 
-- [ ] Incorporar la tipografia confirmada.
-- [ ] Aplicarla a tienda, panel, botones, formularios y modales.
-- [ ] Ajustar pesos y tamaños para mantener la jerarquia de la imagen de referencia.
+- [x] Incorporar la tipografia confirmada.
+- [x] Aplicarla a tienda, panel, botones, formularios y modales.
+- [x] Ajustar pesos y tamaños para mantener la jerarquia de la imagen de referencia.
 
 ### Fondos y cierre de la pagina
 
