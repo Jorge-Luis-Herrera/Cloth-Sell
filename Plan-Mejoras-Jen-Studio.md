@@ -276,9 +276,16 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [ ] Revisar consola del navegador (revision visual del usuario).
 - [x] Revisar respuestas de API y errores HTTP.
 - [x] Crear backup previo al despliegue.
-- [ ] Desplegar backend y frontend.
-- [ ] Verificar el entorno publicado.
-- [ ] Confirmar que las fotos se sirven por HTTPS.
+- [x] Desplegar backend y frontend.
+- [x] Verificar el entorno publicado.
+- [x] Confirmar que las fotos se sirven por HTTPS.
+
+### Nota de despliegue (2026-11-05)
+
+- El pipeline de Azure DevOps no se disparo con el push a `main` (conexion GitHub ↔ Azure DevOps sin verificar). El despliegue se hizo a mano con `deploy/deploy-appservice.sh`: imagen `391c131` construida con `Dockerfile.prebuilt`, empujada a `jennycloth20261014.azurecr.io/jenny-clothing` y fijada en el Web App `jenny-clothing-20261014`.
+- Produccion verificada: `<title>JEN STUDIO · Hecho para moverte</title>`, `/api/health` responde 200 y las fotos se sirven por HTTPS (HEAD 200; el entorno local de desarrollo bloquea descargas de JPG, por eso la comprobacion se hizo con HEAD).
+- La sesion «Básicos» se creo en la base de produccion por API (ID `02e89aeb-3413-442b-9264-fd8db2e47827`) con las 4 prendas normales reales; las 2 premium siguen solo en su serie curada. El filtro publico por sesion devuelve esas 4 prendas.
+- Pendiente de seguridad: cambiar la contraseña de administracion de produccion (la actual sigue siendo la de pruebas; ver `Planning.md` C2).
 
 ## Estado actual
 
@@ -296,4 +303,4 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Bloque 9 — Moneda.
 - [x] Bloque 10 — Responsive y acabado.
 - [x] Bloque 11 — Migracion de datos.
-- [ ] Bloque 12 — Pruebas y despliegue. (Restan: revision visual del usuario en dispositivo, push a main para desplegar y verificacion del entorno publicado.)
+- [ ] Bloque 12 — Pruebas y despliegue. (Desplegado y verificado en produccion; restan solo las pruebas visuales del usuario en dispositivo real: pedido/WhatsApp, carrusel y consola.)
