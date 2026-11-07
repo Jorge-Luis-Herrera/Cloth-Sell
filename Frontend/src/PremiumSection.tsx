@@ -64,7 +64,6 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
       <div className="premium-head">
         <div>
           <p className="eyebrow">SERIE PREMIUM · EDICIÓN LIMITADA</p>
-          <p className="premium-lede">Pocas prendas, elegidas una a una.</p>
         </div>
       </div>
 

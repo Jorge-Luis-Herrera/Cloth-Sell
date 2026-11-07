@@ -340,11 +340,11 @@
    hoja de producto; aqui solo se asoma una linea con datos reales de la ficha. */
 .premium{background:#efe9df;border-top:1px solid var(--j-line);padding:64px 6vw 72px}
 .premium-head{max-width:1180px;margin:0 auto 18px;display:flex;align-items:end;justify-content:space-between;gap:24px}
-.premium-head .eyebrow{margin:0 0 6px}
+.premium-head .eyebrow{margin:0;font-size:clamp(20px,2.6vw,36px);letter-spacing:.1em;line-height:1.12}
 .premium-lede{margin:0;color:var(--j-muted);font-size:14px;line-height:1.5}
 .premium-stage{position:relative;max-width:1180px;margin:0 auto;border-radius:22px;overflow:hidden;background:var(--j-chocolate)}
 .premium-stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#2f2822;animation:premium-fade .5s ease}
-.premium-stage::before{content:'';position:absolute;z-index:0;inset:auto 0 0;height:32%;background:linear-gradient(180deg,transparent,rgba(24,21,18,.24) 28%,rgba(24,21,18,.48));-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);pointer-events:none}
+.premium-stage::before{content:'';position:absolute;z-index:0;inset:0;background:linear-gradient(180deg,rgba(24,21,18,.32),transparent 22%,transparent 78%,rgba(24,21,18,.36));-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 22%,transparent 31% 69%,#000 78%,#000 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 22%,transparent 31% 69%,#000 78%,#000 100%);pointer-events:none}
 .premium-stage::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,21,18,.46) 0%,rgba(24,21,18,.22) 50%,rgba(24,21,18,.40) 100%);pointer-events:none}
 /* Letras del centro tal como salen en Estilo_de_Premium.jpeg: kicker pequeño, nombre grande
    en serif y sub abajo. El título habla siempre de la prenda que está de fondo. */
@@ -439,7 +439,7 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 .adm-checks label{display:flex;align-items:center;gap:6px;color:var(--j-ink);font-size:13px;cursor:pointer}
 .adm-checks input{accent-color:var(--j-caramel)}
 .session-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
-.session-filters .adm-pill{background:transparent}
+.session-filters .adm-pill{background:transparent;padding:11px 22px;font-size:15px}
 .adm-session-form{display:grid;gap:16px;margin-bottom:28px;padding:20px;background:var(--j-paper);border:1px solid var(--j-line)}
 .adm-session-form-title{font-size:16px;font-weight:700}
 .adm-session-visible{display:flex;align-items:center;gap:7px;color:var(--j-muted);font-size:13px}
@@ -457,6 +457,7 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 .manifesto{background:var(--j-chocolate);color:var(--j-beige)}
 .manifesto em{color:var(--j-caramel-light)}
 .manifesto .eyebrow{color:var(--j-caramel-light)}
+.manifesto-copy{font-family:var(--j-display);font-weight:300;font-size:clamp(42px,6vw,88px);line-height:1.04;letter-spacing:.02em;margin:0}
 .marquee-dot{color:var(--j-caramel-light)}
 @media(max-width:760px){.hero-person{width:min(82%,330px);margin-left:calc(-6vw - 3%)}}
 

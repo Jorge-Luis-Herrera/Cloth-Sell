@@ -21,14 +21,14 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5354504048';
  *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
 const mensajeWhatsapp = (order: Order) => {
   const lineas = (order.items ?? []).map(it => `• ${it.quantity} × ${it.name}${it.session ? ` [${it.session}]` : ''} (${it.size} / ${it.color}) — ${money(it.lineTotal)}`).join('\n');
-  return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)}\n\n${lineas}\n\nTotal: ${money(order.total)}\n\n👤 ${order.customerName}\n📞 ${order.customerPhone}\n📍 ${order.deliveryAddress}${order.notes ? `\n📝 ${order.notes}` : ''}`;
+  return `¡Hola Jen-Studio! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)}\n\n${lineas}\n\nTotal: ${money(order.total)}\n\n👤 ${order.customerName}\n📞 ${order.customerPhone}\n📍 ${order.deliveryAddress}${order.notes ? `\n📝 ${order.notes}` : ''}`;
 };
 
 /** Versión corta del mensaje: `wa.me` NO acepta URLs muy largas y, si se pasa,
  *  abre el chat VACÍO. En ese caso mandamos este resumen. */
 const mensajeCorto = (order: Order) => {
   const n = (order.items ?? []).length;
-  return `¡Hola Jenny! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)} (${n} ${n === 1 ? 'prenda' : 'prendas'}). Total: ${money(order.total)}. 👤 ${order.customerName} · 📞 ${order.customerPhone}`;
+  return `¡Hola Jen-Studio! 🛍️ Confirmo el pedido #${order.id.slice(0, 8)} (${n} ${n === 1 ? 'prenda' : 'prendas'}). Total: ${money(order.total)}. 👤 ${order.customerName} · 📞 ${order.customerPhone}`;
 };
 
 const PAGE_SIZE = 12;
@@ -55,7 +55,7 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
         <span className="pcard-hint">Ver detalles</span>
       </button>
       <div className="pcard-body">
-        <h3 className="pcard-name">{product.name}</h3>
+        <h3 className="pcard-name">{variant ? `Talla ${variant.size}` : ''}</h3>
         {product.description ? <p className="pcard-desc">{product.description}</p> : null}
         {product.variants.length > 0 && (
           <div className="pcard-variants">
@@ -307,11 +307,11 @@ function Storefront() {
                   </div>
                 ))}
               </div>
-              {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout.webp" alt="Jenny con un top azul y leggings negros" width={910} height={1448} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
+              {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout-2.webp" alt="Joven con un top azul y leggings negros" width={631} height={1050} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
             </div>
             <div className="hero-content">
-              <p className="eyebrow">NUEVA TEMPORADA / 2026</p>
-              <p className="hero-copy">Prendas pensadas para acompañarte todos los días, con materiales honestos y detalles que se sienten tuyos.</p>
+              <p className="eyebrow">HECHO PARA QUEDARTE / 2026</p>
+              <p className="hero-copy">Ropa deportiva pensada para acompañar tu fuerza, estilo y cada movimiento. Representamos a mujeres que se mueven, se superan, ganan confianza y encuentran su propia fuerza.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
           </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="session-filters" role="group" aria-label="Filtrar por sesion"><button type="button" className="adm-pill" aria-pressed={!activeSession} onClick={() => setActiveSession('')}>Todas</button>{sessions.map(session => <button type="button" className="adm-pill" key={session.id} aria-pressed={activeSession === session.id} onClick={() => setActiveSession(session.id)}>{session.name}</button>)}</div><div className="section-heading"><div><p className="eyebrow">CURATED FOR YOU</p><h2>Piezas para quedarte.</h2></div><Input aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
@@ -321,7 +321,7 @@ function Storefront() {
           ) : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
-          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JEN STUDIO</p><h2>No se trata solo de como te ves,<br /><em>sino de como avanzas,</em></h2><p>creces y descubres hacia donde quieres llegar. <span aria-label="corazon marron" role="img">🤎</span></p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
+          </div></section><section id="historia" className="manifesto"><p className="eyebrow">JEN STUDIO</p><h2>No se trata solo de como te ves,<br /><em>sino de como avanzas,</em></h2><p className="manifesto-copy">creces y descubres hacia donde quieres llegar. <span aria-label="corazon marron" role="img">🤎</span></p></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
   const galeria = detail.variants.length > 0 && sheetVariant
     ? [...detail.images.filter((image) => image.variantId === sheetVariant.id), ...detail.images.filter((image) => !image.variantId)]
     : detail.images;
