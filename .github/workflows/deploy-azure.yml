@@ -1,5 +1,11 @@
-name: Build and deploy to Azure (disabled)
+name: Build and deploy to Azure
 
+# Construye la imagen (frontend + backend) y la publica en el App Service de siempre:
+# https://jenny-clothing-20261014.azurewebsites.net  (el enlace no cambia).
+#
+# Unico secreto necesario: AZURE_CREDENTIALS
+#   Un service principal con rol "Contributor" sobre el resource group rg-jenny
+#   (cubre empujar a ACR y configurar/reiniciar el Web App).
 on:
   workflow_dispatch:
 
@@ -8,6 +14,7 @@ permissions:
 
 env:
   ACR_LOGIN_SERVER: jennycloth20261014.azurecr.io
+  ACR_NAME: jennycloth20261014
   IMAGE_NAME: jenny-clothing
   RESOURCE_GROUP: rg-jenny
   WEB_APP: jenny-clothing-20261014
@@ -19,12 +26,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to Azure Container Registry
-        uses: docker/login-action@v3
+      - name: Log in to Azure
+        uses: azure/login@v2
         with:
-          registry: ${{ env.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: |
+          token=$(az acr login --name "$ACR_NAME" --expose-token --output tsv --query accessToken)
+          echo "$token" | docker login "$ACR_LOGIN_SERVER" --username 00000000-0000-0000-0000-000000000000 --password-stdin
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -35,33 +45,39 @@ jobs:
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Log in to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Configure and deploy App Service
         uses: azure/cli@v2
-        env:
-          ADMIN_PASSWORD_HASH: ${{ secrets.ADMIN_PASSWORD_HASH }}
-          AUTH_SIGNING_KEY: ${{ secrets.AUTH_SIGNING_KEY }}
         with:
           inlineScript: |
+            set -euo pipefail
+            ACR_USER=$(az acr credential show --name "$ACR_NAME" --query username --output tsv)
+            ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query 'passwords[0].value' --output tsv)
             az webapp config appsettings set \
               --name "$WEB_APP" \
               --resource-group "$RESOURCE_GROUP" \
               --settings \
-                ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" \
-                AUTH_SIGNING_KEY="$AUTH_SIGNING_KEY" \
                 WEBSITES_PORT=8080 \
                 DATABASE_URL="sqlite:///app/data/jenny.db?mode=rwc" \
                 UPLOADS_DIR=/app/uploads \
+                PUBLIC_SCHEME=https \
+                FRONTEND_DIR=/app/Frontend/dist \
+                DOCKER_REGISTRY_SERVER_URL="https://$ACR_LOGIN_SERVER" \
+                DOCKER_REGISTRY_SERVER_USERNAME="$ACR_USER" \
+                DOCKER_REGISTRY_SERVER_PASSWORD="$ACR_PASSWORD" \
               --output none
             az webapp config set \
               --name "$WEB_APP" \
               --resource-group "$RESOURCE_GROUP" \
-              --linux-fx-version "DOCKER|$ACR_LOGIN_SERVER/$IMAGE_NAME:${GITHUB_SHA}" \
+              --linux-fx-version "DOCKER|$ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }}" \
+              --always-on true \
               --generic-configurations '{"healthCheckPath":"/api/health"}' \
               --output none
             az webapp restart --name "$WEB_APP" --resource-group "$RESOURCE_GROUP" --output none
-            az webapp config container show --name "$WEB_APP" --resource-group "$RESOURCE_GROUP"
+
+      - name: Verify health
+        run: |
+          for i in $(seq 1 12); do
+            if curl --fail --silent "https://$WEB_APP.azurewebsites.net/api/health"; then exit 0; fi
+            sleep 10
+          done
+          exit 1
