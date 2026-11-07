@@ -134,13 +134,13 @@ function Storefront() {
   // antes de la rejilla normal. Si el backend no la tiene, la seccion simplemente no aparece.
   const [premium, setPremium] = useState<Product[]>([]);
   const [sessions, setSessions] = useState<CatalogSession[]>([]);
-  const [activeSession, setActiveSession] = useState('');
+  const [activeSessions, setActiveSessions] = useState<string[]>([]);
 
   /** Carga una pagina del catalogo. `append` la añade a lo ya visible («cargar más»), si no la
    *  reemplaza. El catalogo lo pagina y filtra el backend: antes se pedia una sola vez con un
    *  tope de 24 y los productos siguientes no existian para el navegador. */
   const loadPage = async (buscar: string, numero: number, append: boolean) => {
-    const data = await api.products({ search: buscar, session: activeSession || undefined, tier: 'normal', page: numero, pageSize: PAGE_SIZE });
+    const data = await api.products({ search: buscar, session: activeSessions.length ? activeSessions.join(',') : undefined, tier: 'normal', page: numero, pageSize: PAGE_SIZE });
     setProducts((current) => append ? [...current, ...data.items] : data.items);
     setTotal(data.total);
     setPage(data.page);
@@ -155,7 +155,7 @@ function Storefront() {
       .catch(() => { if (!cancelado) dispatchToast(<Toast><ToastTitle>No pudimos cargar el catálogo.</ToastTitle></Toast>, { intent: 'error' }); })
       .finally(() => { if (!cancelado) setLoading(false); });
     return () => { cancelado = true; };
-  }, [busqueda, activeSession]);
+  }, [busqueda, activeSessions]);
 
   // Espera medio segundo tras escribir para no lanzar una peticion por cada tecla.
   useEffect(() => { const t = window.setTimeout(() => setBusqueda(query), 350); return () => window.clearTimeout(t); }, [query]);
@@ -314,9 +314,9 @@ function Storefront() {
               <p className="hero-copy">Ropa deportiva pensada para acompañar tu fuerza, estilo y cada movimiento. Representamos a mujeres que se mueven, se superan, ganan confianza y encuentran su propia fuerza.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
-          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="session-filters" role="group" aria-label="Filtrar por sesion"><button type="button" className="adm-pill" aria-pressed={!activeSession} onClick={() => setActiveSession('')}>Todas</button>{sessions.map(session => <button type="button" className="adm-pill" key={session.id} aria-pressed={activeSession === session.id} onClick={() => setActiveSession(session.id)}>{session.name}</button>)}</div><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
-            activeSession
-              ? <div className="catalog-empty-shelf"><p className="catalog-empty">{busqueda ? <>No hay prendas en esta sesión que cuenten con «{busqueda}».</> : <>Aún no hay prendas en «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}».</>}</p><button type="button" className="adm-pill" onClick={() => { setActiveSession(''); setQuery(''); }}>Ver todas las sesiones</button></div>
+          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="session-filters" role="group" aria-label="Filtrar por sesion"><button type="button" className="adm-pill" aria-pressed={activeSessions.length === 0} onClick={() => setActiveSessions([])}>Todas</button>{sessions.map(session => <button type="button" className="adm-pill" key={session.id} aria-pressed={activeSessions.includes(session.id)} onClick={() => setActiveSessions(prev => prev.includes(session.id) ? prev.filter(id => id !== session.id) : [...prev, session.id])}>{session.name}</button>)}</div><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
+            activeSessions.length > 0
+              ? <div className="catalog-empty-shelf"><p className="catalog-empty">{busqueda ? <>No hay prendas en las sesiones elegidas que cuenten con «{busqueda}».</> : <>Aún no hay prendas en {sessions.filter(s => activeSessions.includes(s.id)).map(s => `«${s.name}»`).join(', ')}.</>}</p><button type="button" className="adm-pill" onClick={() => { setActiveSessions([]); setQuery(''); }}>Ver todas las sesiones</button></div>
               : <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p>
           ) : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>

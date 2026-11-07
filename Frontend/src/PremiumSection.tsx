@@ -67,7 +67,6 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
 
       <div className="premium-stage">
         <img className="premium-stage-img" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
-        <img className="premium-stage-blur" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
 
         <div className="premium-copy" aria-live="polite">
           <p className="premium-kicker">¿Buscas una prenda exclusiva?</p>

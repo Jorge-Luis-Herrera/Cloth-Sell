@@ -259,14 +259,22 @@ async fn logout() -> StatusCode { StatusCode::NO_CONTENT }
 const CATALOGO_WHERE: &str = "p.published = 1 \
     AND (? IS NULL OR lower(p.name) LIKE '%' || lower(?) || '%' OR lower(p.description) LIKE '%' || lower(?) || '%') \
     AND (? IS NULL OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1 AND v.size = ?)) \
-    AND (? IS NULL OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1 AND v.color = ?)) \
-    AND (? IS NULL OR p.session_id = ?)";
+    AND (? IS NULL OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1 AND v.color = ?))";
 
 async fn list_products(State(state): State<AppState>, headers: HeaderMap, Query(query): Query<ProductQuery>) -> Result<Json<serde_json::Value>, StatusCode> {
     let buscar = query.search.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let talla = query.size.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let color = query.color.as_deref().map(str::trim).filter(|s| !s.is_empty());
-    let sesion = query.session.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    // `session` acepta una o varias sesiones separadas por comas: el catalogo permite marcar
+    // varios tipos a la vez y ver las prendas de todos ellos.
+    let sesiones: Vec<String> = query.session.as_deref()
+        .map(|s| s.split(',').map(str::trim).filter(|x| !x.is_empty()).map(String::from).collect())
+        .unwrap_or_default();
+    let session_sql = if sesiones.is_empty() {
+        String::new()
+    } else {
+        format!(" AND p.session_id IN ({})", vec!["?"; sesiones.len()].join(","))
+    };
     // `tier=premium|normal` separa la serie premium del resto sin duplicar la consulta.
     // Sin parametro se devuelve todo, que es lo que ya hacia la tienda antes de existir la serie.
     let filtro_premium = match query.tier.as_deref() {
@@ -274,16 +282,18 @@ async fn list_products(State(state): State<AppState>, headers: HeaderMap, Query(
         Some("normal") => " AND p.is_premium = 0",
         _ => "",
     };
-    let where_sql = format!("{}{}", CATALOGO_WHERE, filtro_premium);
-    let total: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM products p WHERE {where_sql}"))
-        .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color).bind(sesion).bind(sesion)
-        .fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let where_sql = format!("{}{}{}", CATALOGO_WHERE, session_sql, filtro_premium);
+    let mut cuenta = sqlx::query_scalar::<_, i64>(&format!("SELECT COUNT(*) FROM products p WHERE {where_sql}"))
+        .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color);
+    for sesion in &sesiones { cuenta = cuenta.bind(sesion); }
+    let total: i64 = cuenta.fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let page = query.page.unwrap_or(1).clamp(1, 10_000);
     let page_size = query.page_size.unwrap_or(24).clamp(1, 60);
-    let filas = sqlx::query_as::<_, ProductRow>(&format!(
+    let mut consulta = sqlx::query_as::<_, ProductRow>(&format!(
         "SELECT p.id, p.slug, p.name, p.description, p.base_price_cents, p.published, p.is_premium, p.premium_rank, p.created_at, p.updated_at FROM products p WHERE {where_sql} ORDER BY p.is_premium DESC, COALESCE(p.premium_rank, 999999), p.created_at DESC, p.id LIMIT ? OFFSET ?"))
-        .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color).bind(sesion).bind(sesion)
-        .bind(page_size).bind((page - 1) * page_size)
+        .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color);
+    for sesion in &sesiones { consulta = consulta.bind(sesion); }
+    let filas = consulta.bind(page_size).bind((page - 1) * page_size)
         .fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let base = format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost"));
     let items = product_views(&state, filas, &base).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
