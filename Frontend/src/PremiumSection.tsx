@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Product, STORE_CURRENCY, STORE_LOCALE } from './api';
-
-const money = (value: number) => new Intl.NumberFormat(STORE_LOCALE, { style: 'currency', currency: STORE_CURRENCY }).format(value);
+import { Product } from './api';
 
 /** Fondo fijo de la serie premium (no cambia al tocar: siempre la misma foto). */
 const FONDO_PREMIUM = '/media/premium/bg-premium.png';
@@ -69,6 +67,7 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
 
       <div className="premium-stage">
         <img className="premium-stage-img" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
+        <img className="premium-stage-blur" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
 
         <div className="premium-copy" aria-live="polite">
           <p className="premium-kicker">¿Buscas una prenda exclusiva?</p>
@@ -102,7 +101,6 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
 
         <div className="premium-foot">
           {datos && <span className="premium-specs">{datos}</span>}
-          <span className="premium-price">{money(producto.basePrice)}</span>
           <button type="button" className="premium-cta" onClick={() => onOpen(producto)}>Ver ficha <span aria-hidden="true">→</span></button>
         </div>
       </div>
