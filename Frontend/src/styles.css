@@ -458,6 +458,7 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 .manifesto em{color:var(--j-caramel-light)}
 .manifesto .eyebrow{color:var(--j-caramel-light)}
 .manifesto-copy{font-family:var(--j-display);font-weight:300;font-size:clamp(42px,6vw,88px);line-height:1.04;letter-spacing:.02em;margin:0}
+.manifesto-logo{display:block;margin:40px 0 0 auto;width:clamp(130px,16vw,200px);height:auto;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.28)}
 .marquee-dot{color:var(--j-caramel-light)}
 @media(max-width:760px){.hero-person{width:min(82%,330px);margin-left:calc(-6vw - 3%)}}
 
