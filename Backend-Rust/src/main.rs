@@ -283,14 +283,16 @@ async fn list_products(State(state): State<AppState>, headers: HeaderMap, Query(
         _ => "",
     };
     let where_sql = format!("{}{}{}", CATALOGO_WHERE, session_sql, filtro_premium);
-    let mut cuenta = sqlx::query_scalar::<_, i64>(&format!("SELECT COUNT(*) FROM products p WHERE {where_sql}"))
+    let count_sql = format!("SELECT COUNT(*) FROM products p WHERE {where_sql}");
+    let mut cuenta = sqlx::query_scalar::<_, i64>(&count_sql)
         .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color);
     for sesion in &sesiones { cuenta = cuenta.bind(sesion); }
     let total: i64 = cuenta.fetch_one(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let page = query.page.unwrap_or(1).clamp(1, 10_000);
     let page_size = query.page_size.unwrap_or(24).clamp(1, 60);
-    let mut consulta = sqlx::query_as::<_, ProductRow>(&format!(
-        "SELECT p.id, p.slug, p.name, p.description, p.base_price_cents, p.published, p.is_premium, p.premium_rank, p.created_at, p.updated_at FROM products p WHERE {where_sql} ORDER BY p.is_premium DESC, COALESCE(p.premium_rank, 999999), p.created_at DESC, p.id LIMIT ? OFFSET ?"))
+    let select_sql = format!(
+        "SELECT p.id, p.slug, p.name, p.description, p.base_price_cents, p.published, p.is_premium, p.premium_rank, p.created_at, p.updated_at FROM products p WHERE {where_sql} ORDER BY p.is_premium DESC, COALESCE(p.premium_rank, 999999), p.created_at DESC, p.id LIMIT ? OFFSET ?");
+    let mut consulta = sqlx::query_as::<_, ProductRow>(&select_sql)
         .bind(buscar).bind(buscar).bind(buscar).bind(talla).bind(talla).bind(color).bind(color);
     for sesion in &sesiones { consulta = consulta.bind(sesion); }
     let filas = consulta.bind(page_size).bind((page - 1) * page_size)
