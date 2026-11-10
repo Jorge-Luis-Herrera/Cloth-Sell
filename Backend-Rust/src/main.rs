@@ -496,7 +496,7 @@ async fn admin_sessions(State(state): State<AppState>, headers: HeaderMap) -> Re
     let base = url_publica(&headers);
     let rows = sqlx::query_as::<_, SessionRow>("SELECT s.id, s.slug, s.name, s.description, s.sort_order, s.visible, s.background_image, COUNT(p.id) AS product_count, s.created_at, s.updated_at FROM catalog_sessions s LEFT JOIN products p ON p.session_id = s.id GROUP BY s.id ORDER BY s.sort_order, s.name")
         .fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows.into_iter().map(|fila| fila.con_url_de_fondo(&base)).collect()).into_response())
+    Ok(Json(rows.into_iter().map(|fila| fila.con_url_de_fondo(&base)).collect::<Vec<SessionRow>>()).into_response())
 }
 
 async fn create_session(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<SessionInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
@@ -535,17 +535,11 @@ async fn delete_session(State(state): State<AppState>, headers: HeaderMap, Path(
     Ok(if result.rows_affected() == 0 { StatusCode::NOT_FOUND } else { StatusCode::NO_CONTENT }.into_response())
 }
 
-/// Clave del fichero de fondo guardado para una sesion (None si no tiene).
-async fn fondo_actual(state: &AppState, id: &str) -> Result<Option<String>, (StatusCode, Json<ErrorBody>)> {
-    Ok(sqlx::query("SELECT background_image FROM catalog_sessions WHERE id = ?").bind(id)
-        .fetch_optional(&state.db).await.map_err(|_| bad("No se pudo leer la sesion."))?
-        .and_then(|row| row.get::<Option<String>, _>("background_image")))
-}
-
 /// Sube la foto de fondo del boton de una sesion. Misma validacion y almacenamiento que
 /// las fotos de producto: se comprueban los bytes (magia), el peso y las dimensiones,
 /// se guarda en /uploads y la sesion apunta a la clave del fichero nuevo. El fichero
 /// anterior se borra para no acumular basura.
+/// La sesion se lee inline para distinguir "no existe" (404) de "existe sin foto" (no hay nada a borrar).
 async fn subir_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>, mut multipart: Multipart) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
     if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
     let mut bytes = Vec::new();
@@ -562,9 +556,14 @@ async fn subir_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, P
             return Err(bad(&format!("La imagen es de {}x{} px. El maximo son {} px de lado y {} megapixeles. Bajala de tamano antes de subirla.", width, height, MAX_SIDE, MAX_PIXELS / 1_000_000)));
         }
     }
-    let Some(anterior) = fondo_actual(&state, &id).await? else {
+    // Existencia + fondo actual en una sola lectura: distinguimos "la sesion no existe" (404)
+    // de "existe pero aun no tiene foto" (sigue, sin nada que borrar).
+    let fila_fondo = sqlx::query("SELECT background_image FROM catalog_sessions WHERE id = ?").bind(&id)
+        .fetch_optional(&state.db).await.map_err(|_| bad("No se pudo leer la sesion."))?;
+    let Some(row_fondo) = fila_fondo else {
         return Err((StatusCode::NOT_FOUND, Json(ErrorBody { request: "La sesion no existe o la lista del panel esta desactualizada. Refresca la pagina (F5) e intentalo de nuevo.".into() })));
     };
+    let vieja = row_fondo.get::<Option<String>, _>("background_image");
     let extension = match content_type { "image/jpeg" => "jpg", "image/png" => "png", _ => "webp" };
     let key = format!("{}.{extension}", Uuid::new_v4());
     tokio::fs::create_dir_all(&state.uploads).await.map_err(|_| bad("Could not store image"))?;
@@ -576,7 +575,7 @@ async fn subir_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, P
         let _ = tokio::fs::remove_file(state.uploads.join(&key)).await;
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
-    if let Some(vieja) = anterior { let _ = tokio::fs::remove_file(state.uploads.join(vieja)).await; }
+    if let Some(clave_vieja) = vieja { let _ = tokio::fs::remove_file(state.uploads.join(clave_vieja)).await; }
     let base = url_publica(&headers);
     Ok((StatusCode::CREATED, Json(serde_json::json!({ "backgroundImage": format!("{base}/uploads/{key}") }))).into_response())
 }
@@ -584,10 +583,13 @@ async fn subir_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, P
 /// Quita la foto de fondo de una sesion (el boton vuelve al estilo liso) y borra su fichero.
 async fn borrar_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
     if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
-    let Some(anterior) = fondo_actual(&state, &id).await? else { return Ok(StatusCode::NOT_FOUND.into_response()) };
+    let fila_fondo = sqlx::query("SELECT background_image FROM catalog_sessions WHERE id = ?").bind(&id)
+        .fetch_optional(&state.db).await.map_err(|_| bad("No se pudo leer la sesion."))?;
+    let Some(row_fondo) = fila_fondo else { return Ok(StatusCode::NOT_FOUND.into_response()) };
+    let vieja = row_fondo.get::<Option<String>, _>("background_image");
     let result = sqlx::query("UPDATE catalog_sessions SET background_image = NULL, updated_at = ? WHERE id = ?")
         .bind(now()).bind(&id).execute(&state.db).await.map_err(|_| bad("Could not clear background"))?;
-    if let Some(key) = anterior { let _ = tokio::fs::remove_file(state.uploads.join(key)).await; }
+    if let Some(clave) = vieja { let _ = tokio::fs::remove_file(state.uploads.join(clave)).await; }
     Ok(if result.rows_affected() == 0 { StatusCode::NOT_FOUND } else { StatusCode::NO_CONTENT }.into_response())
 }
 
