@@ -15,7 +15,7 @@ const DATOS_CLIENTE_KEY = 'jenny-datos-cliente';
 const readDatosCliente = (): DatosCliente | null => { try { const d = JSON.parse(localStorage.getItem(DATOS_CLIENTE_KEY) || 'null'); return d && typeof d.name === 'string' ? d as DatosCliente : null; } catch { return null; } };
 
 /** WhatsApp de la tienda: al confirmar pedido se manda el resumen por aqui. */
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5354504048';
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '52970724';
 
 /** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda).
  *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
