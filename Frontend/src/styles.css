@@ -455,8 +455,8 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 .topbar,.catalog,.premium{background:var(--j-beige)}
 .hero{background:var(--j-beige)}
 .manifesto{background:var(--j-chocolate);color:var(--j-beige)}
-.manifesto em{color:var(--j-caramel-light)}
-.manifesto .eyebrow{color:var(--j-caramel-light);font-family:var(--j-display);font-weight:600;font-size:13px;letter-spacing:.3em}
+.manifesto em{font-style:normal;color:inherit}
+.manifesto .eyebrow{color:inherit;font-family:var(--j-display);font-weight:300;font-size:14px;letter-spacing:.3em}
 .manifesto-copy{font-family:var(--j-display);font-weight:300;font-size:clamp(30px,4.2vw,58px);line-height:1.1;letter-spacing:.02em;margin:0}
 .manifesto-logo{display:block;margin:40px 0 0 auto;width:clamp(130px,16vw,200px);height:auto}
 .marquee-dot{color:var(--j-caramel-light)}
