@@ -14,7 +14,7 @@ export type PremiumSpec = {
 /** Al escribir solo hace falta mandar lo que se rellena; el backend rellena el resto. */
 export type PremiumInput = Partial<PremiumSpec>;
 
-export type CatalogSession = { id: string; slug: string; name: string; description: string; sortOrder: number; visible: boolean; productCount: number; createdAt: string; updatedAt: string };
+export type CatalogSession = { id: string; slug: string; name: string; description: string; sortOrder: number; visible: boolean; productCount: number; createdAt: string; updatedAt: string; backgroundImage?: string | null };
 export type Product = { id: string; slug: string; name: string; description: string; basePrice: number; published: boolean; sessionId?: string | null; isPremium?: boolean; premiumRank?: number | null; premium?: PremiumSpec | null; createdAt: string; updatedAt: string; variants: Variant[]; images: ProductImage[] };
 export type CartLine = { variant: Variant; product: Product; quantity: number };
 
@@ -163,6 +163,14 @@ export const api = {
   updateSession: (token: string, id: string, data: { name: string; description?: string; slug?: string; sortOrder?: number; visible?: boolean }) => json(`/api/admin/sessions/${id}`, { method: 'PUT', headers: auth(token), body: JSON.stringify(data) }),
   deleteSession: (token: string, id: string) => json(`/api/admin/sessions/${id}`, { method: 'DELETE', headers: auth(token) }),
   setProductSession: (token: string, productId: string, sessionId: string | null) => json(`/api/admin/products/${productId}/session`, { method: 'PATCH', headers: auth(token), body: JSON.stringify({ sessionId }) }),
+
+  /** Foto de fondo de un boton de sesion. Sube la imagen y el backend la guarda en /uploads. */
+  uploadSessionBackground: (token: string, sessionId: string, file: File, onProgress?: ProgressHandler) => {
+    const form = new FormData();
+    form.append('file', file);
+    return upload(`/api/admin/sessions/${sessionId}/background`, token, form, onProgress);
+  },
+  deleteSessionBackground: (token: string, sessionId: string) => json(`/api/admin/sessions/${sessionId}/background`, { method: 'DELETE', headers: auth(token) }),
   createProduct: (token: string, data: ProductInput) => json('/api/admin/products', { method: 'POST', headers: auth(token), body: JSON.stringify(data) }),
   updateProduct: (token: string, id: string, data: ProductInput) => json(`/api/admin/products/${id}`, { method: 'PUT', headers: auth(token), body: JSON.stringify(data) }),
   deleteProduct: (token: string, id: string) => json(`/api/admin/products/${id}`, { method: 'DELETE', headers: auth(token) }),

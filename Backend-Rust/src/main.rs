@@ -463,24 +463,40 @@ fn multipart_error(err: &axum::extract::multipart::MultipartError) -> (StatusCod
     bad("No se pudo leer la subida. Comprueba que sea un fichero JPG, PNG o WebP.")
 }
 #[derive(Serialize, FromRow)]
-struct SessionRow { id: String, slug: String, name: String, description: String, #[serde(rename = "sortOrder")] sort_order: i64, visible: bool, #[serde(rename = "productCount")] product_count: i64, #[serde(rename = "createdAt")] created_at: String, #[serde(rename = "updatedAt")] updated_at: String }
+struct SessionRow { id: String, slug: String, name: String, description: String, #[serde(rename = "sortOrder")] sort_order: i64, visible: bool, #[serde(rename = "backgroundImage")] background_image: Option<String>, #[serde(rename = "productCount")] product_count: i64, #[serde(rename = "createdAt")] created_at: String, #[serde(rename = "updatedAt")] updated_at: String }
+
+impl SessionRow {
+    /// La base de datos guarda la clave del fichero en /uploads; al cliente se le entrega
+    /// la URL completa (con el esquema publico) como con las fotos de producto.
+    fn con_url_de_fondo(self, base: &str) -> Self {
+        SessionRow { background_image: self.background_image.map(|key| format!("{base}/uploads/{key}")), ..self }
+    }
+}
+
+/// Esquema publico + host de la peticion: la misma mecanica que usa el catalogo para
+/// decidir entre http (local) y https (produccion) en las URLs de /uploads.
+fn url_publica(headers: &HeaderMap) -> String {
+    format!("{}://{}", env_or("PUBLIC_SCHEME", "http"), headers.get("host").and_then(|v| v.to_str().ok()).unwrap_or("localhost"))
+}
 
 #[derive(Deserialize)]
 struct SessionInput { name: String, description: Option<String>, slug: Option<String>, #[serde(rename = "sortOrder", default)] sort_order: i64, #[serde(default = "default_visible")] visible: bool }
 
 fn default_visible() -> bool { true }
 
-async fn list_sessions(State(state): State<AppState>) -> Result<Json<Vec<SessionRow>>, StatusCode> {
-    let rows = sqlx::query_as::<_, SessionRow>("SELECT s.id, s.slug, s.name, s.description, s.sort_order, s.visible, COUNT(p.id) AS product_count, s.created_at, s.updated_at FROM catalog_sessions s LEFT JOIN products p ON p.session_id = s.id WHERE s.visible = 1 GROUP BY s.id ORDER BY s.sort_order, s.name")
+async fn list_sessions(State(state): State<AppState>, headers: HeaderMap) -> Result<Json<Vec<SessionRow>>, StatusCode> {
+    let base = url_publica(&headers);
+    let rows = sqlx::query_as::<_, SessionRow>("SELECT s.id, s.slug, s.name, s.description, s.sort_order, s.visible, s.background_image, COUNT(p.id) AS product_count, s.created_at, s.updated_at FROM catalog_sessions s LEFT JOIN products p ON p.session_id = s.id WHERE s.visible = 1 GROUP BY s.id ORDER BY s.sort_order, s.name")
         .fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows))
+    Ok(Json(rows.into_iter().map(|fila| fila.con_url_de_fondo(&base)).collect()))
 }
 
 async fn admin_sessions(State(state): State<AppState>, headers: HeaderMap) -> Result<impl IntoResponse, StatusCode> {
     if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
-    let rows = sqlx::query_as::<_, SessionRow>("SELECT s.id, s.slug, s.name, s.description, s.sort_order, s.visible, COUNT(p.id) AS product_count, s.created_at, s.updated_at FROM catalog_sessions s LEFT JOIN products p ON p.session_id = s.id GROUP BY s.id ORDER BY s.sort_order, s.name")
+    let base = url_publica(&headers);
+    let rows = sqlx::query_as::<_, SessionRow>("SELECT s.id, s.slug, s.name, s.description, s.sort_order, s.visible, s.background_image, COUNT(p.id) AS product_count, s.created_at, s.updated_at FROM catalog_sessions s LEFT JOIN products p ON p.session_id = s.id GROUP BY s.id ORDER BY s.sort_order, s.name")
         .fetch_all(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows).into_response())
+    Ok(Json(rows.into_iter().map(|fila| fila.con_url_de_fondo(&base)).collect()).into_response())
 }
 
 async fn create_session(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<SessionInput>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
@@ -507,10 +523,71 @@ async fn update_session(State(state): State<AppState>, headers: HeaderMap, Path(
 
 async fn delete_session(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<impl IntoResponse, StatusCode> {
     if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
+    // Limpieza: si la sesion tenia foto de fondo, su fichero no se queda huerfano en /uploads.
+    let fondo = sqlx::query("SELECT background_image FROM catalog_sessions WHERE id = ?").bind(&id)
+        .fetch_optional(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .and_then(|row| row.get::<Option<String>, _>("background_image"));
     let mut tx = state.db.begin().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     sqlx::query("UPDATE products SET session_id = NULL WHERE session_id = ?").bind(&id).execute(&mut *tx).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let result = sqlx::query("DELETE FROM catalog_sessions WHERE id = ?").bind(id).execute(&mut *tx).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     tx.commit().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if let Some(key) = fondo { let _ = tokio::fs::remove_file(state.uploads.join(key)).await; }
+    Ok(if result.rows_affected() == 0 { StatusCode::NOT_FOUND } else { StatusCode::NO_CONTENT }.into_response())
+}
+
+/// Clave del fichero de fondo guardado para una sesion (None si no tiene).
+async fn fondo_actual(state: &AppState, id: &str) -> Result<Option<String>, (StatusCode, Json<ErrorBody>)> {
+    Ok(sqlx::query("SELECT background_image FROM catalog_sessions WHERE id = ?").bind(id)
+        .fetch_optional(&state.db).await.map_err(|_| bad("No se pudo leer la sesion."))?
+        .and_then(|row| row.get::<Option<String>, _>("background_image")))
+}
+
+/// Sube la foto de fondo del boton de una sesion. Misma validacion y almacenamiento que
+/// las fotos de producto: se comprueban los bytes (magia), el peso y las dimensiones,
+/// se guarda en /uploads y la sesion apunta a la clave del fichero nuevo. El fichero
+/// anterior se borra para no acumular basura.
+async fn subir_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>, mut multipart: Multipart) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
+    let mut bytes = Vec::new();
+    while let Some(field) = multipart.next_field().await.map_err(|e| multipart_error(&e))? {
+        if field.name() == Some("file") || field.name() == Some("image") {
+            bytes = field.bytes().await.map_err(|e| multipart_error(&e))?.to_vec();
+        }
+    }
+    if bytes.is_empty() { return Err(bad("No se recibio ningun fichero. El campo debe llamarse \"file\".")) }
+    if bytes.len() > MAX_UPLOAD { return Err((StatusCode::PAYLOAD_TOO_LARGE, Json(ErrorBody { request: format!("La imagen supera el limite de {} MB.", MAX_UPLOAD / 1024 / 1024) }))) }
+    let Some(content_type) = sniff_image(&bytes) else { return Err(bad("El fichero no es una imagen JPG, PNG o WebP valida.")) };
+    if let Some((width, height)) = image_dimensions(&bytes) {
+        if width > MAX_SIDE || height > MAX_SIDE || u64::from(width) * u64::from(height) > MAX_PIXELS {
+            return Err(bad(&format!("La imagen es de {}x{} px. El maximo son {} px de lado y {} megapixeles. Bajala de tamano antes de subirla.", width, height, MAX_SIDE, MAX_PIXELS / 1_000_000)));
+        }
+    }
+    let Some(anterior) = fondo_actual(&state, &id).await? else {
+        return Err((StatusCode::NOT_FOUND, Json(ErrorBody { request: "La sesion no existe o la lista del panel esta desactualizada. Refresca la pagina (F5) e intentalo de nuevo.".into() })));
+    };
+    let extension = match content_type { "image/jpeg" => "jpg", "image/png" => "png", _ => "webp" };
+    let key = format!("{}.{extension}", Uuid::new_v4());
+    tokio::fs::create_dir_all(&state.uploads).await.map_err(|_| bad("Could not store image"))?;
+    tokio::fs::write(state.uploads.join(&key), bytes).await.map_err(|_| bad("Could not store image"))?;
+    let result = sqlx::query("UPDATE catalog_sessions SET background_image = ?, updated_at = ? WHERE id = ?")
+        .bind(&key).bind(now()).bind(&id).execute(&state.db).await
+        .map_err(|e| { tracing::error!(error = %e, "no se pudo guardar el fondo de la sesion"); bad("Could not save background") })?;
+    if result.rows_affected() == 0 {
+        let _ = tokio::fs::remove_file(state.uploads.join(&key)).await;
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+    if let Some(vieja) = anterior { let _ = tokio::fs::remove_file(state.uploads.join(vieja)).await; }
+    let base = url_publica(&headers);
+    Ok((StatusCode::CREATED, Json(serde_json::json!({ "backgroundImage": format!("{base}/uploads/{key}") }))).into_response())
+}
+
+/// Quita la foto de fondo de una sesion (el boton vuelve al estilo liso) y borra su fichero.
+async fn borrar_fondo_sesion(State(state): State<AppState>, headers: HeaderMap, Path(id): Path<String>) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    if !is_admin(&state, &headers) { return Ok(StatusCode::UNAUTHORIZED.into_response()); }
+    let Some(anterior) = fondo_actual(&state, &id).await? else { return Ok(StatusCode::NOT_FOUND.into_response()) };
+    let result = sqlx::query("UPDATE catalog_sessions SET background_image = NULL, updated_at = ? WHERE id = ?")
+        .bind(now()).bind(&id).execute(&state.db).await.map_err(|_| bad("Could not clear background"))?;
+    if let Some(key) = anterior { let _ = tokio::fs::remove_file(state.uploads.join(key)).await; }
     Ok(if result.rows_affected() == 0 { StatusCode::NOT_FOUND } else { StatusCode::NO_CONTENT }.into_response())
 }
 
@@ -673,6 +750,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> { tracing_subscriber::
         .route("/api/admin/products/:id/images/:image_id",delete(delete_image).patch(update_image))
         .route("/api/admin/sessions",get(admin_sessions).post(create_session))
         .route("/api/admin/sessions/:id",put(update_session).delete(delete_session))
+        .route("/api/admin/sessions/:id/background",post(subir_fondo_sesion).delete(borrar_fondo_sesion))
         .route("/api/admin/orders",get(admin_orders))
         .route("/api/admin/orders/:id",delete(delete_order))
         .route("/api/admin/orders/:id/status",patch(update_status))

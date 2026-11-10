@@ -65,6 +65,23 @@ export function SessionsTab({ token, sessions, onChanged }: { token: string; ses
     }
   };
 
+  /** Sube o quita la foto de fondo del boton de la sesion en la tienda. La foto se guarda en
+   *  /uploads como las de producto y la sesion apunta a su URL; sin foto vuelve al pill liso. */
+  const changePhoto = async (session: CatalogSession, file: File | null) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (file) await api.uploadSessionBackground(token, session.id, file);
+      else await api.deleteSessionBackground(token, session.id);
+      await onChanged();
+      toast.success(file ? 'Fondo de la sesion actualizado.' : 'Fondo de la sesion quitado.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo guardar el fondo de la sesion.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <header className="adm-head">
@@ -104,6 +121,14 @@ export function SessionsTab({ token, sessions, onChanged }: { token: string; ses
               <div className="adm-session-card-title"><h3>{session.name}</h3><span className="adm-session-order">#{session.sortOrder}</span></div>
               {session.description && <p>{session.description}</p>}
               <span className="adm-session-state">{session.productCount} {session.productCount === 1 ? 'prenda' : 'prendas'} · {session.visible ? 'Visible en la tienda' : 'Oculta en la tienda'}</span>
+              <div className="adm-session-photo">
+                {session.backgroundImage && <img src={session.backgroundImage} alt={`Fondo de la sesion ${session.name}`} />}
+                <label className="adm-btn adm-btn-sm">
+                  {session.backgroundImage ? 'Cambiar fondo' : 'Poner fondo'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={(event) => { const archivo = event.target.files?.[0]; event.target.value = ''; if (archivo) void changePhoto(session, archivo); }} />
+                </label>
+                {session.backgroundImage && <button type="button" className="adm-btn adm-btn-sm" onClick={() => void changePhoto(session, null)} disabled={busy}>Quitar</button>}
+              </div>
             </div>
             <div className="adm-card-actions">
               <button type="button" className="adm-btn adm-btn-sm" onClick={() => edit(session)} disabled={busy}>Editar</button>
