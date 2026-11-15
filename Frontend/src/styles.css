@@ -471,12 +471,12 @@ button,a{-webkit-tap-highlight-color:rgba(98,64,45,.12)}
 /* ===================== Header flotante ===================== */
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;background:rgba(235,220,205,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .brand-mark-link{display:flex;align-items:center;color:inherit;text-decoration:none}
-.brand{
+.topbar .brand{
   position:absolute;
   top:50%;
   left:50%;
   color:inherit;
-  font-size:20px;
+  font-size:24px;
   font-weight:600;
   letter-spacing:.22em;
   line-height:1;
@@ -491,7 +491,7 @@ button,a{-webkit-tap-highlight-color:rgba(98,64,45,.12)}
 .topbar .topnav-link:hover{background:var(--j-tint);color:var(--j-caramel-strong);transform:translateY(-1px)}
 .topbar .topnav-link:focus-visible{outline:2px solid var(--j-caramel);outline-offset:2px}
 section[id]{scroll-margin-top:92px}
-@media(max-width:1100px){
+@media(max-width:1260px){
   .topbar .topnav{gap:4px}
   .topbar .topnav-link{padding:8px;border-radius:50%}
   .topbar .topnav-link span{display:none}
@@ -500,7 +500,9 @@ section[id]{scroll-margin-top:92px}
 }
 @media(max-width:760px){
   .topbar{height:62px;padding:0 14px}
-  .brand span{font-size:14px;letter-spacing:.18em}
+  .brand span{font-size:16px;letter-spacing:.18em}
+  .topbar .topnav{gap:2px}
+  .topbar .topnav-link{padding:7px}
   section[id]{scroll-margin-top:74px}
 }
 
