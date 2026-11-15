@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Product } from './api';
 
-/** Fondo fijo de la serie premium (no cambia al tocar: siempre la misma foto). */
-const FONDO_PREMIUM = '/media/premium/bg-premium.png';
-
 /** Linea tecnica de la prenda activa. Solo con los datos que existen: si no hay ficha, no se
  *  inventa nada y la linea desaparece. */
 function lineaTecnica(product: Product) {
@@ -66,8 +63,6 @@ export function PremiumSection({ items, onOpen }: { items: Product[]; onOpen: (p
       </div>
 
       <div className="premium-stage">
-        <img className="premium-stage-img" src={FONDO_PREMIUM} alt="" aria-hidden="true" loading="eager" decoding="async" />
-
         <div className="premium-copy" aria-live="polite">
           <p className="premium-kicker">¿Buscas una prenda exclusiva?</p>
           <h2 className="premium-title">{producto.name}</h2>

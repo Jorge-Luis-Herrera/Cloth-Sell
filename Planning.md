@@ -7,6 +7,181 @@
 
 ---
 
+## Tareas pendientes — feedback de la clienta (10 nov 2026)
+
+> **Última actualización:** 2026-11-14 · Fuente: `chat.txt:900-954`.
+> La auditoría de abajo es del commit `05c0e83` (17 oct 2026); **esta lista es la que manda** para
+> el trabajo actual.
+> Los días 11–14 nov no traen pedidos web (fiebre y temas personales); todo lo accionable está
+> concentrado el **10 nov por la noche**.
+>
+> **Estado del repo:** `main` con cambios locales sobre `b62fe78`; implementación del feedback
+> completada y probada (14 nov 2026). `Planning.md` se incluye en el commit.
+> **Estado actual:** las casillas de esta lista reflejan la implementación; los textos que describen
+> el estado anterior son contexto de la auditoría. Pendientes reales: URL/usuario de Instagram,
+> fotos reales de las sesiones, confirmación del número de WhatsApp, deploy y pedido de prueba.
+
+### 0. Bloqueante — sincronizar el repo
+
+- [x] `git pull --ff-only` hasta `b62fe78`; HEAD confirmado.
+- [x] Baseline antes de tocar código: `./tests/run-all.sh` y `cd Frontend && npm run build`.
+- [x] **No desplegar** el `Frontend/dist` local actual: es del 4 nov y no corresponde a producción.
+      Rebuild después de los cambios.
+
+### 1. Crítico / funcional
+
+- [x] **WhatsApp: número y formato.** Decisión del 14 nov: **mantener el de la mamá**
+      (`52970724`, `chat.txt:902-903`). Hoy está sin código de país en `Frontend/src/main.tsx:18`;
+      para que `wa.me` funcione debe ser `5352970724` (+53 52970724). Probar el enlace completo.
+      Si finalmente se usa el de Jeni, es `5350722776` (`chat.txt:858`; ella se quejó del cambio en
+      `chat.txt:801`). **Prioridad alta.**
+- [x] **Quitar el azul de Fluent UI.** La app no tiene `FluentProvider` ni tema custom, así que los
+      botones `appearance="primary"` usan el azul por defecto. La clienta lo vio (`chat.txt:908`) y
+      el desarrollador lo atribuyó al iPhone (`chat.txt:926`), pero el origen es el tema. Envolver
+      la app en `FluentProvider` con la paleta chocolate (`#62402D`) o sobrescribir los tokens
+      `--colorBrand*`; revisar también el focus ring de inputs.
+- [x] **DM Sans para todo** (decisión 14 nov). Hoy conviven DM Sans (body), Josefin Sans (display)
+      y Playfair Display (premium/precios), más Georgia y monospace en detalles. La clienta pide
+      “misma tipografía para todo” (`chat.txt:916`, `chat.txt:944`). Poner `--j-display` y todo el
+      CSS en DM Sans; quitar Playfair/Josefin/Georgia/monospace de textos visibles. `index.html`
+      debe cargar solo DM Sans. El logo sigue siendo imagen.
+
+### 2. Hero (pantalla principal)
+
+Archivos: `Frontend/src/main.tsx` (hero, ~línea 294) y `Frontend/src/styles.css`
+(`.hero`, `.hero-person`, `.hero-content`, `.hero-copy`).
+
+- [x] **Imagen más pequeña y centrada** (`chat.txt:941`). Hoy mide 630 px desktop / 380 tablet /
+      300 móvil; en móvil tiene `margin-left: calc(-6vw - 3%)`, que la corre a la izquierda.
+      Reducir ~15–20 % y centrar de verdad en todos los breakpoints.
+- [x] **Logo JEN STUDIO más grande y centrado, sin “hecho para moverte” arriba** (`chat.txt:942`).
+      Hoy no hay logo en el hero: está el marquee “Hecho para moverte” detrás y el logo pequeño en
+      el header. Agregar el isotipo al hero (versión oscura `#62402D`, la misma del footer) y
+      **quitar el marquee “Hecho para moverte”**. Sin captura, es la interpretación literal; si se
+      quiere conservar el movimiento, cambiar el texto del marquee a “IN THE STUDIO”.
+- [x] **Reordenar el texto del hero** (`chat.txt:943-946`). Orden que pide la aclaración de las
+      10:10 PM: **imagen → “Ropa deportiva pensada para acompañar tu fuerza, estilo y cada
+      movimiento.” → logo → “In The Studio” → “Representamos a mujeres que se mueven, se superan…”**.
+      Ojo: el punto 3 del listado dice “abajo del logo”, pero la aclaración de las 10:10 lo pone
+      entre la imagen y el logo; manda la aclaración.
+- [x] **“In The Studio”** centrado, con DM Sans y más grande que el cuerpo (`chat.txt:944`).
+      Decisión 14 nov: **título de colección, sin enlace**.
+- [x] **Párrafo “Representamos a mujeres…”** debajo de “In The Studio” (`chat.txt:945`).
+- [x] **“Esto va más grande” / “fotos chiquitas”** (`chat.txt:912-913`). Sin captura se interpreta
+      así: “esto” = el logo y “In The Studio” más grandes; “fotos chiquitas” = los fondos de las
+      secciones (punto 5). Validar con la clienta en la revisión.
+- [x] **Coherencia de “Hecho para moverte”**: si se quita del hero, actualizar también el `<title>`,
+      la meta description y el alt del isotipo en `Frontend/index.html` y `main.tsx`.
+- [x] **Corregir el preload del hero**: `Frontend/index.html` precarga `jenny-cutout.webp`, pero el
+      hero usa `jenny-cutout-2.webp`; el navegador descarga una imagen que no se muestra.
+
+### 3. Fondo y bloque final (footer/manifesto)
+
+Archivos: `Frontend/src/styles.css` (`.hero`, `.manifesto`, `.manifesto-logo`) y
+`Frontend/src/main.tsx` (manifiesto).
+
+- [x] **Quitar el cuadro chocolate de abajo y unificar el fondo** (`chat.txt:910-911`, `930`, `934`).
+      Hoy `.manifesto` es chocolate y el hero tiene un gradiente partido. Pasar todo al beige
+      `#EBDCCD` y quitar el gradiente. El “cuadro de abajo” es el `.manifesto`.
+- [x] **Logo centrado abajo y en carmelita oscuro** (`chat.txt:931`). Hoy `.manifesto-logo` está a
+      la derecha (`margin:40px 0 0 auto`) y el PNG tiene letras beige (invisible sobre beige).
+      Recolorear el isotipo a `#62402D` y centrarlo (`margin:40px auto 0`).
+- [x] **Quitar el “JEN STUDIO” duplicado del final** (`chat.txt:907`). Hoy el manifesto tiene el
+      eyebrow “JEN STUDIO” + el isotipo que también dice JEN STUDIO. Quitar el eyebrow.
+- [x] **Texto final + Instagram** (`chat.txt:951-952`): “Jen Studio representa a mujeres que se
+      mueve con intención, reconocen su fuerza y que eligen prendas que acompañan su estilo de vida.
+      Sé parte de nuestra comunidad de Instagram”. Decisión 14 nov: **va debajo de la cita actual**
+      (“No se trata solo de cómo te ves…”). **Falta el usuario/URL de Instagram**; si no hay, dejar
+      solo el texto. Revisar si se corrige “mujeres que se mueve” → “se mueven”.
+
+### 4. Premium
+
+Archivo: `Frontend/src/PremiumSection.tsx` y `Frontend/src/styles.css`.
+
+- [x] **Quitar la foto de fondo y conservar el color** (`chat.txt:948`). Hoy
+      `FONDO_PREMIUM = '/media/premium/bg-premium.png'` se pinta como `.premium-stage-img` (es una
+      foto de ella). Eliminarla y dejar el color sólido del stage (`var(--j-chocolate)`), ajustando
+      el blur/gradiente para que no quede raro.
+- [x] “¿Buscas una prenda exclusiva?” ya está implementado (`PremiumSection.tsx:72`). No rehacer.
+
+### 5. Secciones / catálogo
+
+Archivos: `Frontend/src/main.tsx` (`.session-filters`), `Frontend/src/styles.css`,
+`Frontend/src/admin/SessionsTab.tsx`.
+
+- [x] **Fotos de secciones en rectángulos, una debajo de otra** (`chat.txt:925`). Hoy los filtros
+      son pills horizontales con foto de fondo. Cambiar a tarjetas rectangulares apiladas
+      verticalmente **en desktop y móvil** (decisión 14 nov). **Conservar la selección múltiple**
+      (commit `2547ad3`).
+- [x] **Revisar que todas las sesiones tengan fondo** (`chat.txt:912`). El panel ya permite subir
+      fondo por sesión (`SessionsTab.tsx`); si falta alguna, es data, no código.
+- [x] **Aplicar la tipografía única** también a los botones/etiquetas de sección (mismo punto 1).
+
+### 6. Ya hecho — no rehacer
+
+- [x] Selección múltiple de sesiones (`2547ad3`).
+- [x] Fondo fotografiado por sesión + subida desde el panel (`6641ab8`, migración `0006`).
+- [x] “¿Buscas una prenda exclusiva?” (`PremiumSection.tsx:72`).
+- [x] Sin stock en la UI (decisión del Plan).
+- [x] Tallas visibles en el catálogo y nombre de producto oculto (`e70cfa7`).
+- [x] “Hecho para quedarte” en lugar de “Nueva temporada” (`6641ab8`).
+- [x] Hero reducido a 630/380/300 y copy a 17 px (`6641ab8`) — la clienta lo quiere aún más pequeño.
+- [x] Footer con isotipo transparente (`6641ab8`) — ahora lo quiere oscuro, centrado y sobre claro.
+- [x] Difuminado del bloque premium (`2ca3e22` / `2547ad3`) — ahora hay que quitar la foto.
+
+### 7. Bloqueos y decisiones
+
+- [x] **Capturas:** no hay export con multimedia; se trabaja con el texto (decisión 14 nov).
+      “Esto va más grande” (`chat.txt:913`) y “fotos chiquitas” (`chat.txt:912`) se interpretan con
+      criterio y se validan con la clienta en la revisión.
+- [x] Tipografía única: **DM Sans**.
+- [x] “In The Studio”: **título de colección, sin enlace**.
+- [ ] Usuario/URL de Instagram (si no hay, dejar solo el texto).
+- [x] Texto final: **va debajo de la cita actual**.
+- [x] Número elegido: **52970724 (mamá)** por decisión del 14 nov.
+- [x] Añadir código de país para `wa.me` (`5352970724`) y confirmar con la clienta; si debe ser
+      Jeni, usar `5350722776`.
+- [x] Secciones en rectángulos: **vertical en desktop y móvil**.
+
+### 8. Orden recomendado
+
+1. Pull a `b62fe78` (hecho) + baseline de tests/build.
+2. WhatsApp: `5352970724` (mamá, con +53) + prueba del enlace; confirmar si debe ser Jeni.
+3. Tema Fluent chocolate (mata el azul) + DM Sans en todo.
+4. Hero (imagen, orden imagen→texto→logo→In The Studio→representamos, marquee).
+5. Fondo beige global + manifesto claro + logo oscuro centrado + quitar duplicado + texto final.
+6. Premium sin foto, conservando color.
+7. Sesiones como rectángulos verticales; revisar imágenes.
+8. QA visual 375/768/1280, `tests/run-all.sh`, `npm run build` y deploy.
+
+### 9. Definición de terminado
+
+- [x] `./tests/run-all.sh` en verde.
+- [x] `cd Frontend && npm run build` sin errores.
+- [x] QA visual en 375, 768 y 1280 px.
+- [ ] El bundle publicado contiene los cambios (verificar el hash del asset en Azure).
+- [ ] Pedido de prueba real: carrito → confirmar → WhatsApp abre el chat del número configurado
+      (mamá `5352970724` o Jeni `5350722776`) con el resumen.
+
+### 10. Implementación (14 nov 2026)
+
+- **Frontend:** DM Sans en todo; `FluentProvider` con tema chocolate; WhatsApp `5352970724`;
+  hero vertical con logo oscuro; fondo beige plano; manifesto claro con logo centrado y texto de
+  Instagram; premium sin foto de fondo y con caramel; sesiones como tarjetas rectangulares
+  apiladas con selección múltiple; título del catálogo antes de los filtros.
+- **Backend:** al crear un producto sin `slug` manual, un nombre ya existente responde `409` con
+  mensaje claro (la suite lo exigía y se había perdido). Con `slug` manual distinto se puede repetir
+  el nombre, como prueba `tests/audit-api.py`.
+- **Pruebas:** `./tests/run-all.sh` en verde — API 98/98, 415 8/8, galería 20/20, paginación
+  27/27, dinero 22/22 y contrato `api.ts` 14/14. `cd Frontend && npm run build` sin errores.
+- **QA visual:** capturas a 1440, 1280, 768, 390 y 375 px; hero, premium, catálogo, tarjetas de
+  sesión con foto, manifesto y logo revisados. Capturas de trabajo en `/tmp/opencode/jenny-visual/`.
+- **Pendiente:** URL/usuario de Instagram (si no se configura, el texto queda sin enlace), fotos
+  reales de las sesiones de la clienta, confirmación final del número de WhatsApp, deploy y pedido
+  de prueba con el carrito real.
+
+---
+
 ## 0. Progreso
 
 **Verificado en local tras los arreglos: 81/81 comprobaciones del API, 8/8 escrituras del panel con el
