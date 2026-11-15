@@ -515,8 +515,8 @@ section[id]{scroll-margin-top:92px}
 .premium-stage{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 30px,#000 calc(100% - 24px),transparent 100%)}
 
 /* ===================== Ajustes feedback clienta · 10 nov 2026 =====================
-   1) Hero vertical y centrado: foto más pequeña, texto, logo, "In The Studio",
-      párrafo y CTA. Sin el marquee "Hecho para moverte".
+   1) Hero vertical y centrado: foto más pequeña, marquee "Hecho para moverte"
+      de fondo, texto, logo, "In The Studio", párrafo y CTA.
    2) Manifiesto sobre el mismo beige de la marca, con el logo oscuro centrado.
    3) Serie premium sin la foto personal: conserva el caramelo del fondo.
    4) Sesiones como tarjetas rectangulares apiladas, no como píldoras. */

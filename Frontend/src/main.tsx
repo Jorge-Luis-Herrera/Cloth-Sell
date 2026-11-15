@@ -326,6 +326,19 @@ function Storefront() {
   return <><Toaster toasterId={toasterId} /><header className="topbar"><a className="brand" href="#inicio" aria-label="JEN STUDIO · inicio"><img className="brand-mark" src="/media/brand/isotypo.jpg" alt="" /><span>JEN STUDIO</span></a><nav className="topnav" aria-label="Secciones"><a className="topnav-link" href="#inicio" aria-label="Inicio" title="Inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg><span>Inicio</span></a><a className="topnav-link" href="#premium" aria-label="Productos premium" title="Premium"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.6-5 4.4 1.5 6.5L12 16.6 5.9 20l1.5-6.5-5-4.4 6.6-.6z" /></svg><span>Premium</span></a><a className="topnav-link" href="#catalogo" aria-label="Catálogo" title="Catálogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg><span>Catálogo</span></a><a className="topnav-link topnav-link--historia" href="#historia" aria-label="La colección" title="La colección"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z" /></svg><span>La colección</span></a></nav></header><main><section id="inicio" className="hero">
             <h1 className="sr-only">JEN STUDIO · In The Studio</h1>
             <div className="hero-stage">
+              <div className="hero-marquee" aria-hidden="true">
+                {[1, 2, 3].map(row => (
+                  <div key={row} className={`marquee-row marquee-row-${row}`}>
+                    <div className="marquee-track">
+                      {[0, 1].map(copia => (
+                        <div className="marquee-group" key={copia}>
+                          {Array.from({ length: 4 }, (_, i) => <span key={i}>Hecho para moverte<span className="marquee-dot">·</span></span>)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
               {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout-2.webp" alt="Joven con un top azul y leggings negros" width={631} height={1050} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
             </div>
             <div className="hero-content">
