@@ -470,7 +470,17 @@ button,a{-webkit-tap-highlight-color:rgba(98,64,45,.12)}
 
 /* ===================== Header flotante ===================== */
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;background:rgba(235,220,205,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
-.brand{text-decoration:none;color:inherit}
+.brand{
+  gap:14px;
+  color:inherit;
+  font-size:20px;
+  font-weight:600;
+  letter-spacing:.22em;
+  line-height:1;
+  text-decoration:none;
+}
+.brand span{display:inline-flex;align-items:center;line-height:1}
+.brand-mark{width:38px;height:38px}
 .topbar .topnav{display:flex;align-items:center;gap:6px}
 .topbar .topnav-link{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;color:var(--j-ink);text-decoration:none;font-size:13px;font-weight:600;letter-spacing:.02em;transition:background .2s ease,color .2s ease,transform .18s ease,box-shadow .2s ease}
 .topbar .topnav-link svg{width:18px;height:18px;flex:none}
@@ -479,7 +489,7 @@ button,a{-webkit-tap-highlight-color:rgba(98,64,45,.12)}
 section[id]{scroll-margin-top:92px}
 @media(max-width:760px){
   .topbar{height:62px;padding:0 14px}
-  .brand span{font-size:12px;letter-spacing:.16em}
+  .brand span{font-size:14px;letter-spacing:.18em}
   .topbar .topnav{gap:4px}
   .topbar .topnav-link{padding:8px;border-radius:50%}
   .topbar .topnav-link span{display:none}
@@ -516,7 +526,7 @@ section[id]{scroll-margin-top:92px}
 
 /* ===================== Ajustes feedback clienta · 10 nov 2026 =====================
    1) Hero vertical y centrado: foto más pequeña, marquee "Hecho para moverte"
-      de fondo, texto, logo, "In The Studio", párrafo y CTA.
+      de fondo, texto, "In The Studio", párrafo y CTA.
    2) Manifiesto sobre el mismo beige de la marca, con el logo oscuro centrado.
    3) Serie premium sin la foto personal: conserva el caramelo del fondo.
    4) Sesiones como tarjetas rectangulares apiladas, no como píldoras. */
@@ -577,12 +587,6 @@ section[id]{scroll-margin-top:92px}
   font-size:clamp(17px,1.8vw,21px);
   font-weight:500;
   line-height:1.45;
-}
-.hero-logo{
-  display:block;
-  width:clamp(170px,20vw,255px);
-  height:auto;
-  margin:0 auto 8px;
 }
 .hero-collection{
   margin:0 0 12px;
@@ -721,7 +725,6 @@ section[id]{scroll-margin-top:92px}
     max-height:none;
   }
   .hero-content{margin-top:10px}
-  .hero-logo{width:clamp(150px,40vw,210px)}
   .hero-collection{font-size:clamp(28px,7.5vw,40px)}
   .hero-copy--lead{font-size:17px}
   .hero-copy--body{font-size:15px}
