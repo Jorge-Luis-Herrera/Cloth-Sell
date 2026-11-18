@@ -360,7 +360,7 @@ function Storefront() {
               <img
                 src="/media/footer/foto1-1047.webp"
                 srcSet="/media/footer/foto1-720.webp 720w, /media/footer/foto1-1047.webp 1047w"
-                sizes="(max-width: 820px) 100vw, 46vw"
+                sizes="(max-width: 820px) 48vw, 46vw"
                 alt="Mujer con conjunto deportivo negro de JEN STUDIO"
                 width={1047}
                 height={1502}
