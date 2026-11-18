@@ -8,9 +8,16 @@ name: Build and deploy to Azure
 #   (cubre empujar a ACR y configurar/reiniciar el Web App).
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - recuperacion
 
 permissions:
   contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
 
 env:
   ACR_LOGIN_SERVER: jennycloth20261014.azurecr.io
