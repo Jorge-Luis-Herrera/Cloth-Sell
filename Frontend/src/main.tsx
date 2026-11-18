@@ -364,7 +364,7 @@ function Storefront() {
                 alt="Mujer con conjunto deportivo negro de JEN STUDIO"
                 width={1047}
                 height={1502}
-                loading="lazy"
+                loading="eager"
                 decoding="async"
               />
             </figure>
@@ -372,7 +372,7 @@ function Storefront() {
               <p className="eyebrow">COMUNIDAD JEN STUDIO</p>
               <h2 id="manifesto-title" className="manifesto-copy">JEN STUDIO representa a mujeres que se mueven con intención, reconocen su fuerza y eligen prendas que acompañan su estilo de vida.</h2>
               <p className="manifesto-instagram">Sé parte de nuestra comunidad de <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer">Instagram ↗</a>.</p>
-              <img className="manifesto-logo" src="/media/brand/isotypo-footer-transparente.png" alt="JEN STUDIO · Hecho para moverte" loading="lazy" decoding="async" />
+              <img className="manifesto-logo" src="/media/brand/isotypo-jen-studio-dark.png" alt="JEN STUDIO" loading="eager" decoding="async" />
             </div>
           </section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
   const galeria = detail.variants.length > 0 && sheetVariant
