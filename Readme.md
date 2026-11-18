@@ -21,6 +21,8 @@ export AUTH_SIGNING_KEY='local-only-signing-key-at-least-32-chars'
 
 Para frontend aislado: `cd Frontend && npm ci && npm run dev`. Vite hace proxy de `/api` a `localhost:8080`.
 
+El enlace de Instagram del footer se configura con `VITE_INSTAGRAM_URL`; si no se define, lleva a `https://www.instagram.com/`.
+
 ## Docker
 
 ```bash

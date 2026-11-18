@@ -19,9 +19,6 @@ const readDatosCliente = (): DatosCliente | null => { try { const d = JSON.parse
  *  Se puede cambiar por `VITE_WHATSAPP_NUMBER` sin tocar código. */
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5352970724';
 
-/** Instagram de la tienda. Si se configura, el texto final enlaza al perfil. */
-const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || '';
-
 /** Tema Fluent de la marca: rampa carmelita para que los botones y focos de Fluent
  *  dejen de salir azules y usen el chocolate de JEN STUDIO. */
 const jennyBrand: BrandVariants = {
@@ -48,6 +45,10 @@ const jennyTheme = {
   fontFamilyMonospace: "'DM Sans', sans-serif",
   fontFamilyNumeric: "'DM Sans', sans-serif",
 };
+
+/** Perfil de Instagram de la tienda. Se puede cambiar con VITE_INSTAGRAM_URL
+ *  sin tocar el componente; mientras no se confirme el usuario, lleva a Instagram. */
+const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/';
 
 /** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda).
  *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
@@ -354,7 +355,26 @@ function Storefront() {
           ) : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
-          </div></section><section id="historia" className="manifesto"><h2>No se trata solo de cómo te ves,<br /><em>sino de cómo avanzas,</em></h2><p className="manifesto-copy">creces y descubres hacia dónde quieres llegar. <span aria-label="corazon marron" role="img">🤎</span></p><p className="manifesto-final">Jen Studio representa a mujeres que se mueven con intención, reconocen su fuerza y eligen prendas que acompañan su estilo de vida. {INSTAGRAM_URL ? <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer">Sé parte de nuestra comunidad de Instagram.</a> : <>Sé parte de nuestra comunidad de Instagram.</>}</p><img className="manifesto-logo" src="/media/brand/isotypo-jen-studio-dark.png" alt="JEN STUDIO" loading="eager" decoding="async" /></section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
+          </div></section><section id="historia" className="manifesto" aria-labelledby="manifesto-title">
+            <figure className="manifesto-photo">
+              <img
+                src="/media/footer/foto1-1047.webp"
+                srcSet="/media/footer/foto1-720.webp 720w, /media/footer/foto1-1047.webp 1047w"
+                sizes="(max-width: 820px) 100vw, 46vw"
+                alt="Mujer con conjunto deportivo negro de JEN STUDIO"
+                width={1047}
+                height={1502}
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div className="manifesto-body">
+              <p className="eyebrow">COMUNIDAD JEN STUDIO</p>
+              <h2 id="manifesto-title" className="manifesto-copy">JEN STUDIO representa a mujeres que se mueven con intención, reconocen su fuerza y eligen prendas que acompañan su estilo de vida.</h2>
+              <p className="manifesto-instagram">Sé parte de nuestra comunidad de <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer">Instagram ↗</a>.</p>
+              <img className="manifesto-logo" src="/media/brand/isotypo-footer-transparente.png" alt="JEN STUDIO · Hecho para moverte" loading="lazy" decoding="async" />
+            </div>
+          </section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
   const galeria = detail.variants.length > 0 && sheetVariant
     ? [...detail.images.filter((image) => image.variantId === sheetVariant.id), ...detail.images.filter((image) => !image.variantId)]
     : detail.images;

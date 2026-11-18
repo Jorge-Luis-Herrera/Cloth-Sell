@@ -454,11 +454,27 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 @media(max-width:640px){.adm-session-card{align-items:flex-start;flex-direction:column}.adm-session-card .adm-card-actions{width:100%}}
 .topbar,.catalog,.premium{background:var(--j-beige)}
 .hero{background:var(--j-beige)}
-.manifesto{background:var(--j-chocolate);color:var(--j-beige)}
-.manifesto em{font-style:normal;color:inherit}
-.manifesto .eyebrow{color:inherit;font-family:var(--j-display);font-weight:300;font-size:14px;letter-spacing:.3em}
-.manifesto-copy{font-family:var(--j-display);font-weight:300;font-size:clamp(30px,4.2vw,58px);line-height:1.1;letter-spacing:.02em;margin:0}
-.manifesto-logo{display:block;margin:40px 0 0 auto;width:clamp(130px,16vw,200px);height:auto}
+/* Footer editorial: foto a la izquierda y manifiesto a la derecha.
+   La foto ocupa toda la columna y el texto mantiene el contraste sobre chocolate. */
+.manifesto{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);padding:0;background:var(--j-chocolate);color:var(--j-beige);overflow:hidden}
+.manifesto-photo{margin:0;min-height:clamp(520px,58vw,760px);background:#c9a98e;overflow:hidden}
+.manifesto-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%}
+.manifesto-body{display:flex;flex-direction:column;justify-content:center;padding:clamp(44px,6vw,92px) clamp(30px,6vw,96px)}
+.manifesto .eyebrow{margin:0 0 18px;color:var(--j-beige);font-family:var(--j-display);font-weight:400;font-size:clamp(11px,1vw,14px);letter-spacing:.28em}
+.manifesto .manifesto-copy{max-width:18em;margin:0;font-family:var(--j-display);font-weight:300;font-size:clamp(30px,4.2vw,58px);line-height:1.1;letter-spacing:.01em}
+.manifesto-instagram{max-width:30em;margin:clamp(24px,3vw,38px) 0 0;font-size:clamp(15px,1.25vw,18px);line-height:1.6;color:var(--j-beige)}
+.manifesto-instagram a{color:inherit;font-weight:600;text-decoration:none;border-bottom:1px solid currentColor;white-space:nowrap;transition:color .2s ease,border-color .2s ease}
+.manifesto-instagram a:hover{color:var(--j-caramel-light);border-color:var(--j-caramel-light)}
+.manifesto-instagram a:focus-visible{outline:2px solid var(--j-caramel-light);outline-offset:4px;border-radius:2px}
+.manifesto-logo{display:block;align-self:flex-end;width:clamp(120px,12vw,170px);height:auto;margin:clamp(34px,4vw,56px) 0 0}
+@media(max-width:820px){
+  .manifesto{grid-template-columns:1fr}
+  .manifesto-photo{min-height:0;aspect-ratio:4/5;max-height:72vh}
+  .manifesto-photo img{object-position:center 32%}
+  .manifesto-body{padding:44px 28px 52px}
+  .manifesto .manifesto-copy{max-width:none;font-size:clamp(30px,6.8vw,36px)}
+  .manifesto-logo{align-self:flex-start;width:130px;margin-top:32px}
+}
 .marquee-dot{color:var(--j-caramel-light)}
 @media(max-width:760px){.hero-person{width:min(76%,300px);margin-left:calc(-6vw - 3%)}}
 
@@ -613,44 +629,6 @@ section[id]{scroll-margin-top:92px}
   line-height:1.6;
 }
 
-.manifesto{
-  padding:88px 8vw 64px;
-  background:var(--j-beige);
-  color:var(--j-chocolate);
-  border-top:1px solid var(--j-line);
-  text-align:center;
-}
-.manifesto h2{
-  max-width:1000px;
-  margin:0 auto 22px;
-  color:var(--j-chocolate);
-}
-.manifesto-copy{
-  max-width:760px;
-  margin:0 auto 18px;
-  color:var(--j-muted);
-  font-size:clamp(30px,4.2vw,58px);
-  line-height:1.1;
-}
-.manifesto-final{
-  max-width:760px;
-  margin:0 auto 30px;
-  color:var(--j-muted);
-  font-size:clamp(15px,1.5vw,17px);
-  line-height:1.7;
-}
-.manifesto-final a{
-  color:var(--j-chocolate);
-  text-decoration:underline;
-  text-underline-offset:3px;
-}
-.manifesto-logo{
-  display:block;
-  width:clamp(170px,20vw,240px);
-  height:auto;
-  margin:0 auto;
-}
-
 .premium{background:var(--j-beige)}
 .premium-stage{background:var(--j-caramel)}
 
@@ -736,8 +714,6 @@ section[id]{scroll-margin-top:92px}
   .hero-collection{font-size:clamp(28px,7.5vw,40px)}
   .hero-copy--lead{font-size:17px}
   .hero-copy--body{font-size:15px}
-  .manifesto{padding:64px 24px 48px}
-  .manifesto-copy{font-size:clamp(28px,8vw,38px)}
   .session-filters{max-width:100%;margin:0 0 26px;gap:10px}
   .session-filters .adm-pill{
     min-height:92px;

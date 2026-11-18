@@ -69,10 +69,12 @@ Estas decisiones deben quedar cerradas antes de implementar los bloques que depe
 - [x] Unificar el fondo entre hero, premium, catalogo y seccion final.
 - [x] Eliminar separaciones que produzcan cuadrados visuales.
 - [x] Rediseñar la seccion final con la paleta JEN STUDIO.
-- [x] Sustituir el texto final por: `No se trata solo de como te ves, sino de como avanzas, creces y descubres hacia donde quieres llegar.`
-- [x] Añadir el corazon marron de forma coherente con la identidad visual.
+- [x] Sustituir el texto final por: `JEN STUDIO representa a mujeres que se mueven con intencion, reconocen su fuerza y eligen prendas que acompanan su estilo de vida. Se parte de nuestra comunidad de Instagram.`
+- [x] Colocar `Resources/Foto1.PNG` a la izquierda y el manifiesto a la derecha.
+- [x] Mantener el isotipo de JEN STUDIO en el footer.
+- [x] Enlazar Instagram mediante `VITE_INSTAGRAM_URL`; falta confirmar el usuario definitivo.
 
-**Validacion:** revisar capturas en movil y escritorio; comprobar contraste y ausencia de bloques bruscos.
+**Validacion:** capturas a 1440 px y 390 px revisadas; `npm run build` correcto y `npm run test:api` 14/14. Contraste beige/chocolate y apilado movil comprobados.
 
 ## Bloque 2 — Eliminar dependencia de stock
 
