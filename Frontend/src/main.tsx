@@ -260,6 +260,13 @@ function Storefront() {
     return () => window.removeEventListener('keydown', onKey);
   }, [detail, foto]);
 
+  /** Al elegir una sesión bajamos hasta la rejilla: los banners ocupan varias
+   *  pantallas y, si no, el filtro parece no haber hecho nada. */
+  const selectSession = (id: string | null) => {
+    setActiveSession(id);
+    window.setTimeout(() => document.getElementById('catalogo-resultados')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
@@ -390,11 +397,11 @@ function Storefront() {
               <p className="hero-copy hero-copy--lead">Ropa deportiva pensada para acompañar tu fuerza, estilo y cada movimiento.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
-          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div><SessionShowcase sessions={sessions} active={activeSession} onSelect={(id) => setActiveSession(id)} />{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
+          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div><SessionShowcase sessions={sessions} active={activeSession} onSelect={selectSession} /><div id="catalogo-resultados" className="catalog-resultados">{activeSession !== null && !loading && <div className="catalog-active-filter"><span>Mostrando «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}»</span><button type="button" onClick={() => selectSession(null)}>Quitar filtro</button></div>}{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
             activeSession !== null
               ? <div className="catalog-empty-shelf"><p className="catalog-empty">{busqueda ? <>No hay prendas en «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}» que cuenten con «{busqueda}».</> : <>Aún no hay prendas en «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}».</>}</p><button type="button" className="adm-pill" onClick={() => { setActiveSession(null); setQuery(''); }}>Ver todas las sesiones</button></div>
               : <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p>
-          ) : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}
+          ) : <div className="product-grid">{products.map(product => { const variant = product.variants.find(v => v.id === selected[product.id]) || product.variants[0]; return <ProductCard key={product.id} product={product} variant={variant} activeVariantId={variant?.id} onOpen={() => setDetail(product)} onSelectVariant={id => setSelected({ ...selected, [product.id]: id })} onAdd={() => { if (variant) add(product, variant); }} />})}</div>}</div>
           <div className="catalog-more" ref={sentinel}>
             {loadingMore ? <Spinner size="tiny" label="Cargando más prendas" /> : hasMore ? <Button appearance="outline" onClick={() => void loadMore()}>Cargar más prendas</Button> : products.length > 0 && <p className="catalog-count">Has visto las {total} {total === 1 ? 'prenda' : 'prendas'} de la temporada.</p>}
           </div></section><section id="historia" className="manifesto" aria-labelledby="manifesto-title">
