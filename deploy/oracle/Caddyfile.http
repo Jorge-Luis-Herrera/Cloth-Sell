@@ -1,0 +1,5 @@
+# Sin dominio: solo HTTP en el puerto 80.
+# Para HTTPS, define DOMAIN en .env y vuelve a desplegar.
+http:// {
+    reverse_proxy app:8080
+}

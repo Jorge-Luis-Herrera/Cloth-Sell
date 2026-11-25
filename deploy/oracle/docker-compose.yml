@@ -1,0 +1,49 @@
+name: jenny-clothing
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: jenny-clothing:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 8080
+      DATABASE_URL: sqlite:///app/data/jenny.db?mode=rwc
+      UPLOADS_DIR: /app/uploads
+      FRONTEND_DIR: /app/Frontend/dist
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME:-http}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - jenny-data:/app/data
+      - jenny-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  jenny-data:
+  jenny-uploads:
+  caddy-data:
+  caddy-config:

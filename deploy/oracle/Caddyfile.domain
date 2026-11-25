@@ -1,0 +1,5 @@
+# Caddy obtiene y renueva el certificado automaticamente.
+# DOMAIN se inyecta desde .env (ej. tienda.tudominio.com).
+{$DOMAIN} {
+    reverse_proxy app:8080
+}
