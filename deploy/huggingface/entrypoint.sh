@@ -8,6 +8,11 @@ if [[ -n "${HF_DATASET_REPO:-}" && -n "${HF_TOKEN:-}" ]]; then
   python3 /app/hf_sync.py pull || echo "No se pudo restaurar del dataset; arranco con datos locales"
 fi
 
+# Cinturón y tirantes: aunque el pull falle o una imagen vieja traiga el .db en
+# 0444, la API arranca con la base y las carpetas escribibles.
+chmod u+rw /app/data/jenny.db 2>/dev/null || true
+chmod u+rwx /app/data /app/uploads 2>/dev/null || true
+
 /app/jenny-api &
 APP_PID=$!
 trap 'kill "$APP_PID" 2>/dev/null || true' TERM INT

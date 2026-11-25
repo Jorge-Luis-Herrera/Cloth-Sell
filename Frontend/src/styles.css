@@ -429,7 +429,7 @@
 /* Paleta base de JEN STUDIO (Resources/Isotypo.jpg + Topografia.jpg):
    chocolate #62402D, beige #EBDCCD y caramelo #A77E5D, con derivados para
    texto, lineas y hover manteniendo el contraste sobre el beige. */
-:root{--j-chocolate:#62402D;--j-chocolate-deep:#4a2f1c;--j-beige:#EBDCCD;--j-caramel:#A77E5D;--j-caramel-strong:#6f4b2e;--j-caramel-light:#c9a98e;--j-ink:var(--j-chocolate);--j-cream:var(--j-beige);--j-clay:var(--j-caramel);--j-muted:#6f5a49;--j-line:#d8bfa9;--j-tint:#f2e9dc;--j-paper:#fffaf5;--j-shadow:0 6px 24px #62402d24;--j-display:'DM Sans',sans-serif}
+:root{--j-chocolate:#62402D;--j-chocolate-deep:#4a2f1c;--j-beige:#EBDCCD;--j-caramel:#A77E5D;--j-caramel-strong:#6f4b2e;--j-caramel-light:#c9a98e;--j-ink:var(--j-chocolate);--j-cream:var(--j-beige);--j-clay:var(--j-caramel);--j-muted:#6f5a49;--j-line:#d8bfa9;--j-tint:#f2e9dc;--j-paper:#fffaf5;--j-shadow:0 6px 24px #62402d24;--j-display:'Playfair Display',Georgia,'Times New Roman',serif}
 body{background:var(--j-beige);color:var(--j-chocolate)}
 .brand-mark,.adm-mark{object-fit:cover;background:none;border-radius:8px}
 .adm-variant-picker{display:grid;gap:14px;padding:16px;background:var(--j-cream);border-bottom:1px solid var(--j-line)}
@@ -533,26 +533,38 @@ section[id]{scroll-margin-top:92px}
 .catalog-search svg{color:var(--j-muted)}
 @media(max-width:760px){.catalog-search{width:100%;min-width:0}}
 
-/* ===================== Tarjetas de sesión (catálogo) ===================== */
-/* Estilo Amazon: una sola sesión activa y tarjetas cuadradas con la foto de
-   fondo. Al elegir una, el catálogo muestra solo las prendas de esa sesión. */
-.session-filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:26px}
-.session-tile{position:relative;isolation:isolate;flex:0 0 180px;width:180px;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:3px;padding:14px;border:1px solid var(--j-line);border-radius:0;background:var(--j-paper);background-size:cover;background-position:center;color:var(--j-ink);text-align:left;cursor:pointer;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
-.session-tile:hover{transform:translateY(-2px);border-color:var(--j-caramel);box-shadow:0 10px 24px #62402d26}
-.session-tile:active{transform:translateY(0) scale(.985)}
-.session-tile:focus-visible{outline:2px solid var(--j-caramel);outline-offset:3px}
-.session-tile--photo{background-color:var(--j-chocolate);color:#fff;border-color:rgba(255,255,255,.45);text-shadow:0 1px 8px rgba(20,12,6,.65)}
-.session-tile--photo:hover{color:#fff;border-color:#fff}
-.session-tile.is-active{border-color:var(--j-chocolate);box-shadow:inset 0 0 0 3px var(--j-chocolate)}
-.session-tile--photo.is-active{border-color:#fff;box-shadow:inset 0 0 0 3px #fff,0 10px 24px #62402d33}
-.session-tile--all{background:linear-gradient(145deg,var(--j-cream),var(--j-beige))}
-.session-tile-name{position:relative;z-index:1;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-family:var(--j-display);font-size:16px;font-weight:600;line-height:1.12;letter-spacing:.05em;text-transform:uppercase;overflow-wrap:anywhere}
-.session-tile-hint{position:relative;z-index:1;color:var(--j-muted);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+/* ===================== Secciones del catálogo (sesiones) ===================== */
+/* Una sola sesión activa. Tarjetas grandes con la foto de fondo, como los
+   banners de referencia: en escritorio la primera ocupa todo el ancho y el
+   resto van en dos columnas; en móvil se apilan una debajo de otra. */
+.session-showcase{margin:0 0 42px}
+.session-showcase-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 16px}
+.session-showcase-label{margin:0;font-family:var(--j-display);font-size:clamp(20px,2.2vw,28px);font-weight:500;line-height:1.1}
+.session-showcase-all{border:0;border-bottom:1px solid currentColor;padding:2px 0;background:none;color:var(--j-muted);font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:color .18s ease}
+.session-showcase-all:hover,.session-showcase-all[aria-pressed="true"]{color:var(--j-ink)}
+.session-showcase-all:focus-visible{outline:2px solid var(--j-caramel);outline-offset:3px}
+.session-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(14px,2vw,24px)}
+.session-card{position:relative;isolation:isolate;display:flex;align-items:flex-end;aspect-ratio:16/9;padding:clamp(18px,2.4vw,30px);border:0;border-radius:0;background:var(--j-chocolate);color:#fff;text-align:left;cursor:pointer;overflow:hidden;transition:box-shadow .22s ease,transform .22s ease}
+.session-card--lead{grid-column:1/-1;aspect-ratio:21/8}
+.session-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px #62402d33}
+.session-card:active{transform:translateY(0)}
+.session-card:focus-visible{outline:2px solid var(--j-caramel);outline-offset:3px}
+.session-card.is-active{box-shadow:inset 0 0 0 3px #fff,0 14px 30px #62402d33}
+.session-card-photo{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.6,.2,1)}
+.session-card:hover .session-card-photo{transform:scale(1.04)}
+.session-card-photo--empty{background:linear-gradient(135deg,var(--j-caramel),var(--j-chocolate))}
+.session-card-veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(30,18,10,.02) 35%,rgba(30,18,10,.68) 100%)}
+.session-card-body{position:relative;z-index:2;display:flex;flex-direction:column;gap:7px;max-width:min(100%,34ch)}
+.session-card-name{font-family:var(--j-display);font-size:clamp(24px,3vw,42px);font-weight:500;line-height:1.05;text-shadow:0 2px 18px rgba(20,12,6,.35);overflow-wrap:anywhere}
+.session-card-cta{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.84)}
+.session-card.is-active .session-card-cta{color:#fff}
 @media(max-width:760px){
-  .session-filters{flex-wrap:nowrap;gap:8px;margin:0 -20px 20px;padding:0 20px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:20px;scrollbar-width:none}
-  .session-filters::-webkit-scrollbar{display:none}
-  .session-tile{flex:0 0 132px;width:132px;padding:11px;scroll-snap-align:start}
-  .session-tile-name{font-size:13px}
+  .session-showcase{margin-bottom:32px}
+  .session-showcase-head{margin-bottom:12px}
+  .session-showcase-label{font-size:20px}
+  .session-cards{grid-template-columns:1fr;gap:14px}
+  .session-card,.session-card--lead{grid-column:auto;aspect-ratio:16/10;padding:20px}
+  .session-card-name{font-size:clamp(24px,7vw,32px)}
 }
 /* Miniatura del fondo en la tarjeta de sesion del panel. */
 .adm-session-photo{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
@@ -636,6 +648,11 @@ section[id]{scroll-margin-top:92px}
   grid-template-columns:none;
   gap:0;
   margin:0;
+  font-family:var(--j-display);
+  font-weight:500;
+  font-size:clamp(30px,3.4vw,44px);
+  line-height:1.08;
+  letter-spacing:.01em;
 }
 
 @media(max-width:760px){

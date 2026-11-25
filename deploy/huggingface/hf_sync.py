@@ -29,6 +29,11 @@ def digest(path: Path) -> str:
 def pull() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     UPLOADS.mkdir(parents=True, exist_ok=True)
+    # El proceso corre como `jenny`; sin permiso de escritura en el directorio,
+    # SQLite no puede crear el journal y responde "attempt to write a readonly
+    # database" aunque el fichero .db sí sea escribible.
+    for folder in (DATA, UPLOADS):
+        folder.chmod(0o775)
     state = {}
     for remote in api.list_repo_files(REPO, repo_type="dataset", token=TOKEN):
         if not (remote.startswith("data/") or remote.startswith("uploads/")):
@@ -36,10 +41,16 @@ def pull() -> None:
         dest = Path("/app") / remote
         dest.parent.mkdir(parents=True, exist_ok=True)
         cached = hf_hub_download(REPO, remote, repo_type="dataset", token=TOKEN)
-        if dest.exists():
-            dest.chmod(0o664)
-        shutil.copy2(cached, dest)
-        dest.chmod(0o664)  # la cache de HF es 0444; sin esto SQLite queda sololectura
+        # Un -wal/-shm viejo junto a una base recién restaurada puede bloquear
+        # SQLite o aplicarle transacciones que no corresponden.
+        for suffix in ("-wal", "-shm", "-journal"):
+            stale = Path(f"{dest}{suffix}")
+            if stale.exists():
+                stale.unlink()
+        # copyfile, no copy2: copy2 conserva el 0444 de la cache de HF y deja
+        # la base en solo lectura. El chmod posterior es la garantía final.
+        shutil.copyfile(cached, dest)
+        dest.chmod(0o664)
         state[remote] = digest(dest)
         print(f"restaurado {remote}")
     STATE.write_text(json.dumps(state))

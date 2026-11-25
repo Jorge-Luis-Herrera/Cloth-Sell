@@ -106,6 +106,50 @@ function ProductCard({ product, variant, activeVariantId, onOpen, onSelectVarian
   );
 }
 
+/** Secciones del catálogo: una tarjeta grande por sesión, con la foto de fondo.
+ *  En escritorio la primera ocupa todo el ancho y el resto van en dos columnas;
+ *  en móvil se apilan una debajo de otra, como pidió la clienta. */
+function SessionShowcase({ sessions, active, onSelect }: {
+  sessions: CatalogSession[]; active: string | null; onSelect: (id: string | null) => void;
+}) {
+  if (sessions.length === 0) return null;
+  return (
+    <div className="session-showcase">
+      <div className="session-showcase-head">
+        <p className="session-showcase-label">Explora por sesión</p>
+        <button type="button" className="session-showcase-all" aria-pressed={active === null} onClick={() => onSelect(null)}>
+          Ver todo
+        </button>
+      </div>
+      <div className="session-cards" role="group" aria-label="Filtrar por sesión">
+        {sessions.map((session, index) => {
+          const isActive = active === session.id;
+          return (
+            <button
+              type="button"
+              key={session.id}
+              className={`session-card${index === 0 ? ' session-card--lead' : ''}${isActive ? ' is-active' : ''}`}
+              aria-pressed={isActive}
+              onClick={() => onSelect(isActive ? null : session.id)}
+            >
+              {session.backgroundImage
+                ? <img className="session-card-photo" src={session.backgroundImage} alt="" loading="lazy" decoding="async" />
+                : <span className="session-card-photo session-card-photo--empty" aria-hidden="true" />}
+              <span className="session-card-veil" aria-hidden="true" />
+              <span className="session-card-body">
+                <span className="session-card-name">{session.name}</span>
+                <span className="session-card-cta">
+                  {isActive ? 'Viendo esta sesión' : 'Ver colección'} <span aria-hidden="true">→</span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProductGallery({ images, alt, onOpen }: { images: ProductImage[]; alt: string; onOpen: (url: string) => void }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -346,7 +390,7 @@ function Storefront() {
               <p className="hero-copy hero-copy--lead">Ropa deportiva pensada para acompañar tu fuerza, estilo y cada movimiento.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
-          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div>{sessions.length > 0 && <div className="session-filters" role="group" aria-label="Filtrar por sesión"><button type="button" className={`session-tile session-tile--all${activeSession === null ? ' is-active' : ''}`} aria-pressed={activeSession === null} onClick={() => setActiveSession(null)}><span className="session-tile-name">Todas</span><span className="session-tile-hint">Ver todo</span></button>{sessions.map(session => <button type="button" className={`session-tile${session.backgroundImage ? ' session-tile--photo' : ''}${activeSession === session.id ? ' is-active' : ''}`} key={session.id} aria-pressed={activeSession === session.id} onClick={() => setActiveSession(prev => prev === session.id ? null : session.id)} style={session.backgroundImage ? { backgroundImage: `linear-gradient(180deg, rgba(30,18,10,.06) 35%, rgba(30,18,10,.62) 100%), url(${session.backgroundImage})` } : undefined}><span className="session-tile-name">{session.name}</span></button>)}</div>}{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
+          </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div><SessionShowcase sessions={sessions} active={activeSession} onSelect={(id) => setActiveSession(id)} />{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
             activeSession !== null
               ? <div className="catalog-empty-shelf"><p className="catalog-empty">{busqueda ? <>No hay prendas en «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}» que cuenten con «{busqueda}».</> : <>Aún no hay prendas en «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}».</>}</p><button type="button" className="adm-pill" onClick={() => { setActiveSession(null); setQuery(''); }}>Ver todas las sesiones</button></div>
               : <p className="catalog-empty">{busqueda ? <>No hay prendas que cuenten con «{busqueda}».</> : 'Todavía no hay prendas publicadas.'}</p>

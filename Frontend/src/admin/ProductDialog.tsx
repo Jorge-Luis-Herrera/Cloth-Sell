@@ -349,28 +349,9 @@ export function ProductDialog({ token, product, onClose, onChanged }: { token: s
                   <span className="adm-hint">Debe sumar 100 %. Se pinta como barra de composición.</span>
                 </div>
 
-                <div className="adm-row2">
-                  <div className="adm-field">
-                    <label htmlFor="p-gsm">Gramaje (g/m²)</label>
-                    <input id="p-gsm" type="number" min="1" step="1" value={gsm} onChange={(e) => setGsm(e.target.value)} placeholder="240" disabled={busy} />
-                  </div>
-                  <div className="adm-field">
-                    <label htmlFor="p-units">Tirada (unidades)</label>
-                    <input id="p-units" type="number" min="0" step="1" value={limitedUnits} onChange={(e) => setLimitedUnits(e.target.value)} placeholder="40" disabled={busy} />
-                  </div>
-                </div>
-
-                <div className="adm-field">
-                  <label htmlFor="p-origin">Origen</label>
-                  <input id="p-origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Tejido en Portugal · confeccionado en España" maxLength={160} disabled={busy} />
-                </div>
-
-                <div className="adm-field">
-                  <label htmlFor="p-care">Cuidados</label>
-                  <textarea id="p-care" value={care} onChange={(e) => setCare(e.target.value)} placeholder={'Lavar a 30 °C\nNo usar secadora'} rows={3} disabled={busy} />
-                  <span className="adm-hint">Uno por línea.</span>
-                </div>
-
+                {/* La clienta pidió quitar de este formulario Gramaje, Tirada, Origen y
+                    Cuidados. Se conservan en el estado para no borrar los datos de una
+                    prenda ya guardada al editarla; simplemente dejan de mostrarse. */}
                 <div className="adm-field">
                   <label>Ensayos</label>
                   {tests.map((ensayo, index) => (

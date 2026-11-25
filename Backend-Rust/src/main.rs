@@ -11,8 +11,8 @@ use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use sqlx::{sqlite::SqlitePoolOptions, FromRow, Row, SqlitePool};
-use std::{collections::HashMap, env, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
+use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions}, FromRow, Row, SqlitePool};
+use std::{collections::HashMap, env, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}, time::Duration};
 use subtle::ConstantTimeEq;
 use tower::ServiceBuilder;
 use tower_http::{cors::{Any, CorsLayer}, services::ServeDir, set_header::SetResponseHeaderLayer, trace::TraceLayer};
@@ -724,8 +724,35 @@ async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::migrate::MigrateError> {
     sqlx::migrate!("./migrations").run(pool).await
 }
 
+/// La base puede llegar restaurada desde el dataset de Hugging Face con modo 0444
+/// (la cache de HF es de solo lectura). En ese caso el primer INSERT falla con
+/// "attempt to write a readonly database" y el panel muestra un error opaco.
+/// Antes de abrir el pool devolvemos el permiso de escritura al fichero y a su
+/// carpeta; si no se puede, se deja constancia en el log.
+fn ensure_db_writable(database_url: &str) {
+    let Some(path) = database_url.strip_prefix("sqlite://").and_then(|resto| resto.split('?').next()) else { return };
+    if path.is_empty() { return }
+    let db_path = std::path::Path::new(path);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let parent = db_path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| std::path::Path::new("."));
+        for (target, extra) in [(parent, 0o700), (db_path, 0o600)] {
+            let Ok(meta) = std::fs::metadata(target) else { continue };
+            let mut perms = meta.permissions();
+            let mode = perms.mode();
+            if mode & 0o200 != 0 { continue }
+            perms.set_mode(mode | extra);
+            match std::fs::set_permissions(target, perms) {
+                Ok(()) => tracing::info!(path = %target.display(), "permiso de escritura restaurado"),
+                Err(error) => tracing::warn!(%error, path = %target.display(), "no se pudo dar permiso de escritura"),
+            }
+        }
+    }
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> { tracing_subscriber::fmt().with_env_filter(env_or("RUST_LOG","info")).init(); let database_url=env_or("DATABASE_URL","sqlite://.local-dev/data/jenny.db?mode=rwc"); if let Some(path)=database_url.strip_prefix("sqlite://").and_then(|p|p.split('?').next()) { if path!="jenny.db" { if let Some(parent)=std::path::Path::new(path).parent(){tokio::fs::create_dir_all(parent).await?;} } } let db=SqlitePoolOptions::new().max_connections(5).connect(&database_url).await?; init_db(&db).await?; let uploads=PathBuf::from(env_or("UPLOADS_DIR","uploads")); tokio::fs::create_dir_all(&uploads).await?; let state=AppState{db,uploads: uploads.clone(),admin_hash:env::var("ADMIN_PASSWORD_HASH").expect("ADMIN_PASSWORD_HASH is required"),signing_key:env::var("AUTH_SIGNING_KEY").expect("AUTH_SIGNING_KEY is required"),throttle:LoginThrottle::new()};
+async fn main() -> Result<(), Box<dyn std::error::Error>> { tracing_subscriber::fmt().with_env_filter(env_or("RUST_LOG","info")).init(); let database_url=env_or("DATABASE_URL","sqlite://.local-dev/data/jenny.db?mode=rwc"); if let Some(path)=database_url.strip_prefix("sqlite://").and_then(|p|p.split('?').next()) { if path!="jenny.db" { if let Some(parent)=std::path::Path::new(path).parent(){tokio::fs::create_dir_all(parent).await?;} } } ensure_db_writable(&database_url); let opciones_db=database_url.parse::<SqliteConnectOptions>()?.create_if_missing(true).busy_timeout(Duration::from_secs(15)); let db=SqlitePoolOptions::new().max_connections(5).connect_with(opciones_db).await?; init_db(&db).await?; let uploads=PathBuf::from(env_or("UPLOADS_DIR","uploads")); tokio::fs::create_dir_all(&uploads).await?; let state=AppState{db,uploads: uploads.clone(),admin_hash:env::var("ADMIN_PASSWORD_HASH").expect("ADMIN_PASSWORD_HASH is required"),signing_key:env::var("AUTH_SIGNING_KEY").expect("AUTH_SIGNING_KEY is required"),throttle:LoginThrottle::new()};
     // La carpeta del frontend se busca junto al ejecutable y no en el directorio de trabajo:
     // con `ServeDir::new("Frontend/dist")`, arrancar el binario desde otro sitio dejaba
     // la tienda y el panel sin servir, sin ningun error visible.
