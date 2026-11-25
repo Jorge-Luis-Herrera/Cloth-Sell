@@ -1,0 +1,32 @@
+{
+  "sessions": [
+    { "name": "Playa", "description": "Sesión de verano", "slug": "playa", "sortOrder": 1, "visible": true },
+    { "name": "Novias", "description": "Sesión nupcial", "slug": "novias", "sortOrder": 2, "visible": true }
+  ],
+  "products": [
+    {
+      "name": "Vestido sanitario",
+      "description": "Vestido de lino",
+      "slug": "vestido-sanitario",
+      "basePrice": 89.5,
+      "published": true,
+      "isPremium": true,
+      "premiumRank": 1,
+      "sessionSlug": "novias",
+      "premium": {
+        "tagline": "Hecho a medida",
+        "composition": [{ "fiber": "Lino", "percent": 100 }],
+        "fabricWeightGsm": 180,
+        "origin": "España",
+        "care": ["Lavar en frío"],
+        "tests": [{ "name": "Encogimiento", "method": "ISO 5077", "result": "< 2%" }],
+        "story": "Relato de la prenda",
+        "limitedUnits": 12
+      },
+      "variants": [
+        { "size": "S", "color": "Crudo", "sku": "VES-S-CRU", "priceOverride": 89.5, "isActive": true },
+        { "size": "M", "color": "Crudo", "sku": "VES-M-CRU", "priceOverride": 89.5, "isActive": true }
+      ]
+    }
+  ]
+}
