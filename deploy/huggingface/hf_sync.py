@@ -36,6 +36,8 @@ def pull() -> None:
         dest = Path("/app") / remote
         dest.parent.mkdir(parents=True, exist_ok=True)
         cached = hf_hub_download(REPO, remote, repo_type="dataset", token=TOKEN)
+        if dest.exists():
+            dest.chmod(0o664)
         shutil.copy2(cached, dest)
         dest.chmod(0o664)  # la cache de HF es 0444; sin esto SQLite queda sololectura
         state[remote] = digest(dest)
