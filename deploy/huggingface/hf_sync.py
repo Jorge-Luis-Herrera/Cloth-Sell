@@ -48,8 +48,17 @@ def pull() -> None:
             if stale.exists():
                 stale.unlink()
         # copyfile, no copy2: copy2 conserva el 0444 de la cache de HF y deja
-        # la base en solo lectura. El chmod posterior es la garantía final.
-        shutil.copyfile(cached, dest)
+        # la base en solo lectura. Se copia a un temporal y se renombra para
+        # no tener que abrir un destino que ya pudiera estar en 0444 (el
+        # renombrado solo necesita permiso en la carpeta).
+        tmp = dest.with_name(f".{dest.name}.restore")
+        try:
+            shutil.copyfile(cached, tmp)
+            tmp.chmod(0o664)
+            os.replace(tmp, dest)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
         dest.chmod(0o664)
         state[remote] = digest(dest)
         print(f"restaurado {remote}")
