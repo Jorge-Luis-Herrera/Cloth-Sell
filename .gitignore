@@ -17,3 +17,9 @@ Backend/uploads/
 .env.*
 !.env.example
 .azure/.preview-temp/
+# Caddyfile generado por deploy/oracle/deploy.sh segun haya o no dominio.
+deploy/oracle/Caddyfile
+# Space generado por deploy/huggingface/prepare-space.sh
+deploy/huggingface/space/
+__pycache__/
+deploy/huggingface/.admin_password

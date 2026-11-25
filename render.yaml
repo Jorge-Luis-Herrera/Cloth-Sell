@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: jenny-clothing
+    env: docker
+    plan: free
+    region: oregon
+    branch: recuperacion
+    dockerfilePath: ./deploy/render/Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: AUTH_SIGNING_KEY
+        sync: false
+      - key: PUBLIC_SCHEME
+        value: https
+      - key: HF_DATASET_REPO
+        value: JorgeLuisHerrera/jenny-clothing-data
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_SYNC_INTERVAL
+        value: "60"
