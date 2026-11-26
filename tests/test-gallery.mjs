@@ -110,7 +110,11 @@ await api.createProduct(token, { name: 'Duplicada ' + Date.now(), basePrice: 1, 
 const dup = (await api.adminProducts(token)).find((x) => /^Duplicada/.test(x.name));
 let feo = '';
 try { await api.createProduct(token, { name: dup.name, basePrice: 1, published: false }); } catch (e) { feo = e.message; }
-check('un 409 se muestra como texto, no como JSON crudo', !feo.includes('{') && /Ya existe/.test(feo), feo.slice(0, 80));
+check('dos productos pueden llamarse igual', feo === '', feo || 'sin error');
+await api.saveVariant(token, dup.id, { size: 'M', color: 'Negro', stockQuantity: 1, isActive: true });
+let feo409 = '';
+try { await api.saveVariant(token, dup.id, { size: 'M', color: 'Negro', stockQuantity: 1, isActive: true }); } catch (e) { feo409 = e.message; }
+check('un 409 se muestra como texto, no como JSON crudo', !feo409.includes('{') && /La talla|Ya existe/.test(feo409), feo409.slice(0, 80));
 
 // limpieza
 const prod = (await api.adminProducts(token)).find((x) => x.id === p.id);

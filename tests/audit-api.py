@@ -103,8 +103,11 @@ check("endpoints del panel rotos por el bug de cabeceras", len(roto), 6, "crear 
 
 print("  control login() sin cabeceras: " + curl("POST","/api/auth/login",'{"password":"AuditPass2026"}',"application/json") + " <- por eso si puedes entrar al panel")
 print("\n== 2. Nombres y slugs ==")
-check("2 productos con el MISMO nombre -> 409 con mensaje claro", req("POST","/api/admin/products",{"name":"Camisa de lino","basePrice":100,"published":False},A)[0], 409)
-check("  el mensaje dice que el nombre ya existe", "Ya existe un producto" in req("POST","/api/admin/products",{"name":"Camisa de lino","basePrice":100,"published":False},A)[1], True)
+st1, body1, _ = req("POST","/api/admin/products",{"name":"Camisa de lino","basePrice":100,"published":False},A)
+st2, body2, _ = req("POST","/api/admin/products",{"name":"Camisa de lino","basePrice":100,"published":False},A)
+check("2 productos con el MISMO nombre -> ambos 201", (st1, st2), (201, 201))
+sl1, sl2 = json.loads(body1)["slug"], json.loads(body2)["slug"]
+check("  los slugs son distintos y derivados del nombre", (sl1 != sl2, sl1.startswith("camisa-de-lino"), sl2.startswith("camisa-de-lino")), (True, True, True))
 st, body, _ = req("POST","/api/admin/products",{"name":"Bañador «Niño» Ñandú","basePrice":100,"published":False},A)
 check("nombre con tildes, comillas y eñes", st, 201)
 print("        slug generado: " + repr(json.loads(body)["slug"]))
