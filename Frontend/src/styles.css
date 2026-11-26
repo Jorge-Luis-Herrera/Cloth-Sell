@@ -470,6 +470,7 @@ body{background:var(--j-beige);color:var(--j-chocolate)}
 .manifesto-instagram a{color:var(--j-chocolate);font-weight:600;text-decoration:none;border-bottom:1px solid currentColor;white-space:nowrap;transition:color .2s ease,border-color .2s ease}
 .manifesto-instagram a:hover{color:var(--j-caramel-strong);border-color:var(--j-caramel-strong)}
 .manifesto-instagram a:focus-visible{outline:2px solid var(--j-caramel);outline-offset:4px;border-radius:2px}
+.manifesto-whatsapp{margin-top:6px}
 .manifesto-logo{display:block;align-self:flex-start;width:clamp(130px,12vw,180px);height:auto;margin:clamp(34px,4vw,56px) 0 0}
 @keyframes footer-drift{from{transform:scale(1.06) translateX(0)}to{transform:scale(1.12) translateX(-2%)}}
 @keyframes footer-focus{from{transform:scale(1.01)}to{transform:scale(1.05)}}
@@ -622,7 +623,7 @@ section[id]{scroll-margin-top:92px}
   position:relative;
   z-index:2;
   width:100%;
-  max-width:780px;
+  max-width:min(980px,92vw);
   margin:6px auto 0;
   display:flex;
   flex-direction:column;
@@ -630,18 +631,19 @@ section[id]{scroll-margin-top:92px}
   text-align:center;
 }
 .hero-copy{
-  max-width:660px;
+  max-width:900px;
   margin:0 auto 18px;
   color:var(--j-chocolate);
-  font-size:clamp(17px,1.8vw,22px);
-  line-height:1.5;
+  font-size:clamp(20px,2.4vw,30px);
+  line-height:1.35;
 }
 .hero-copy--lead{
-  max-width:680px;
+  max-width:960px;
   margin-bottom:26px;
-  font-size:clamp(17px,1.8vw,21px);
+  font-size:clamp(28px,3.8vw,52px);
   font-weight:500;
-  line-height:1.45;
+  line-height:1.1;
+  letter-spacing:.005em;
 }
 
 .premium{background:var(--j-beige)}
@@ -668,5 +670,6 @@ section[id]{scroll-margin-top:92px}
     max-height:none;
   }
   .hero-content{margin-top:10px}
-  .hero-copy--lead{font-size:17px}
+  .hero-copy{font-size:20px;line-height:1.4}
+  .hero-copy--lead{font-size:clamp(25px,7vw,34px);line-height:1.14}
 }

@@ -48,7 +48,7 @@ const jennyTheme = {
 
 /** Perfil de Instagram de la tienda. Se puede cambiar con VITE_INSTAGRAM_URL
  *  sin tocar el componente; mientras no se confirme el usuario, lleva a Instagram. */
-const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/';
+const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || 'https://www.instagram.com/jen_studio_oficial?cnvx=MXVmNjl3MW9iYWFmOQ%3D%3D&utm_source=qr';
 
 /** Texto del mensaje de WhatsApp con el pedido ya creado (lo que le llega a la tienda).
  *  Se protege `items`: en respuestas parciales puede faltar y no debe tumbar la página. */
@@ -420,6 +420,7 @@ function Storefront() {
             <div className="manifesto-body">
               <h2 id="manifesto-title" className="manifesto-copy">JEN STUDIO representa a mujeres que se mueven con intención, reconocen su fuerza y eligen prendas que acompañan su estilo de vida.</h2>
               <p className="manifesto-instagram">Sé parte de nuestra comunidad de <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer">Instagram ↗</a>.</p>
+              <p className="manifesto-instagram manifesto-whatsapp">Escríbenos por <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">WhatsApp ↗</a>.</p>
               <img className="manifesto-logo" src="/media/brand/isotypo-jen-studio-dark.png" alt="JEN STUDIO" loading="eager" decoding="async" />
             </div>
           </section></main>{detail && (() => { const sheetVariant = detail.variants.find(v => v.id === selected[detail.id]) || detail.variants[0]; const ficha = detail.isPremium ? detail.premium : null;
