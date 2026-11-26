@@ -41,9 +41,9 @@ const jennyBrand: BrandVariants = {
 };
 const jennyTheme = {
   ...createLightTheme(jennyBrand),
-  fontFamilyBase: "'DM Sans', sans-serif",
-  fontFamilyMonospace: "'DM Sans', sans-serif",
-  fontFamilyNumeric: "'DM Sans', sans-serif",
+  fontFamilyBase: "'Playfair Display', Georgia, serif",
+  fontFamilyMonospace: "'Playfair Display', Georgia, serif",
+  fontFamilyNumeric: "'Playfair Display', Georgia, serif",
 };
 
 /** Perfil de Instagram de la tienda. Se puede cambiar con VITE_INSTAGRAM_URL
@@ -394,7 +394,7 @@ function Storefront() {
               {heroFoto && <img className="hero-person" src="/media/hero/jenny-cutout-2.webp" alt="Joven con un top azul y leggings negros" width={631} height={1050} loading="eager" decoding="async" draggable={false} onError={() => setHeroFoto(false)} />}
             </div>
             <div className="hero-content">
-              <p className="hero-copy hero-copy--lead">Ropa deportiva pensada para acompañar tu fuerza, estilo y cada movimiento.</p>
+              <p className="hero-copy hero-copy--lead">Ropa deportiva pensada para acompañar tu fuerza y estilo en cada movimiento.</p>
               <Button appearance="primary" size="large" onClick={() => document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' })}>Explorar colección ↓</Button>
             </div>
           </section><PremiumSection items={premium} onOpen={setDetail} /><section id="catalogo" className="catalog"><div className="section-heading"><div><h2>Piezas para quedarte.</h2></div><Input className="catalog-search" size="large" contentBefore={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4.5 4.5" /></svg>} aria-label="Buscar productos" placeholder="Buscar en la colección" value={query} onChange={(_, d) => setQuery(d.value)} /></div><SessionShowcase sessions={sessions} active={activeSession} onSelect={selectSession} /><div id="catalogo-resultados" className="catalog-resultados">{activeSession !== null && !loading && <div className="catalog-active-filter"><span>Mostrando «{sessions.find(s => s.id === activeSession)?.name ?? 'esta sesión'}»</span><button type="button" onClick={() => selectSession(null)}>Quitar filtro</button></div>}{loading ? <Spinner label="Cargando colección" /> : products.length === 0 ? (
@@ -575,7 +575,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
 }
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
-    <FluentProvider theme={jennyTheme} style={{ minHeight: '100vh', backgroundColor: 'var(--j-beige)', fontFamily: "'DM Sans', sans-serif" }}>
+    <FluentProvider theme={jennyTheme} style={{ minHeight: '100vh', backgroundColor: 'var(--j-beige)', fontFamily: "'Playfair Display', Georgia, serif" }}>
       <App />
     </FluentProvider>
   </ErrorBoundary>
